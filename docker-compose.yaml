@@ -1,0 +1,51 @@
+services:
+  proxy:
+    image: jc21/nginx-proxy-manager:latest
+    container_name: do_proxy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "81:81"
+    volumes:
+      - ./nginx-proxy-manager/config:/config
+      - ./nginx-proxy-manager/logs:/var/log/nginx
+      - do_proxy_data:/data
+      - do_proxy_letsencrypt:/etc/letsencrypt
+    depends_on:
+      - portainer
+      - adminer
+    networks:
+      - do_network
+
+  portainer:
+    image: portainer/portainer-ce
+    container_name: do_portainer
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./portainer/config:/config
+      - ./portainer/logs:/logs
+      - do_portainer_data:/data
+    networks:
+      - do_network
+
+  adminer:
+    image: adminer
+    container_name: do_adminer
+    restart: unless-stopped
+    volumes:
+      - ./adminer/config:/config
+      - ./adminer/logs:/logs
+      - do_adminer_data:/var/www/html
+    networks:
+      - do_network
+
+volumes:
+  do_proxy_data:
+  do_proxy_letsencrypt:
+  do_portainer_data:
+  do_adminer_data:
+
+networks:
+  do_network:
+    driver: bridge

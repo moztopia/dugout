@@ -15,7 +15,7 @@ services:
       - portainer
       - adminer
     networks:
-      - do_network
+      - moznet
 
   portainer:
     image: portainer/portainer-ce
@@ -27,7 +27,7 @@ services:
       - ./portainer/logs:/logs
       - do_portainer_data:/data
     networks:
-      - do_network
+      - moznet
 
   adminer:
     image: adminer
@@ -38,7 +38,7 @@ services:
       - ./adminer/logs:/logs
       - do_adminer_data:/var/www/html
     networks:
-      - do_network
+      - moznet
 
 volumes:
   do_proxy_data:
@@ -47,5 +47,5 @@ volumes:
   do_adminer_data:
 
 networks:
-  do_network:
-    driver: bridge
+  moznet:
+    external: true

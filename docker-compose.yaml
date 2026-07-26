@@ -40,11 +40,28 @@ services:
     networks:
       - moznet
 
+  # pihole:
+  #   image: pihole/pihole:latest
+  #   container_name: do_pihole
+  #   restart: unless-stopped
+  #   ports:
+  #     - "5353:53/tcp"
+  #     - "5353:53/udp"
+  #   environment:
+  #     TZ: Asia/Bangkok
+  #     WEBPASSWORD: "changeme" # set your admin password
+  #   volumes:
+  #     - ./pihole/etc-pihole:/etc/pihole
+  #     - ./pihole/etc-dnsmasq.d:/etc/dnsmasq.d
+  #   networks:
+  #     - moznet
+
 volumes:
   do_proxy_data:
   do_proxy_letsencrypt:
   do_portainer_data:
   do_adminer_data:
+  # do_pihole_data:
 
 networks:
   moznet:

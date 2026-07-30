@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import errno
 import json
 import sys
 import tempfile
@@ -18,6 +19,43 @@ import dugout_lifecycle as lifecycle  # noqa: E402
 
 
 class LifecycleTests(unittest.TestCase):
+    def test_free_privileged_port_is_available_to_docker(self) -> None:
+        listener = unittest.mock.MagicMock()
+        listener.bind.side_effect = PermissionError(
+            errno.EACCES,
+            "Permission denied",
+        )
+        with (
+            patch.object(lifecycle.socket, "socket", return_value=listener),
+            patch.object(lifecycle.sys, "platform", "linux"),
+            patch.object(
+                lifecycle,
+                "linux_tcp_port_has_listener",
+                return_value=False,
+            ),
+        ):
+            self.assertEqual(lifecycle.port_available(80), (True, ""))
+        self.assertEqual(listener.close.call_count, 2)
+
+    def test_occupied_privileged_port_is_unavailable(self) -> None:
+        listener = unittest.mock.MagicMock()
+        listener.bind.side_effect = PermissionError(
+            errno.EACCES,
+            "Permission denied",
+        )
+        with (
+            patch.object(lifecycle.socket, "socket", return_value=listener),
+            patch.object(lifecycle.sys, "platform", "linux"),
+            patch.object(
+                lifecycle,
+                "linux_tcp_port_has_listener",
+                return_value=True,
+            ),
+        ):
+            available, reason = lifecycle.port_available(80)
+        self.assertFalse(available)
+        self.assertIn("already using", reason)
+
     def test_valid_answers(self) -> None:
         self.assertEqual(
             lifecycle.validate_answers(

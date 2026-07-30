@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import errno
 import json
 import os
 import re
@@ -139,6 +140,32 @@ def existing_installation_resources() -> list[str]:
     return found
 
 
+def linux_tcp_port_has_listener(port: int) -> bool | None:
+    """Return a port's listener state from procfs, or None if it is unavailable."""
+    inspected = False
+    expected_port = f"{port:04X}"
+    for table in (Path("/proc/net/tcp"), Path("/proc/net/tcp6")):
+        try:
+            lines = table.read_text(encoding="ascii").splitlines()[1:]
+        except FileNotFoundError:
+            continue
+        except OSError:
+            return None
+        inspected = True
+        for line in lines:
+            fields = line.split()
+            if len(fields) < 4:
+                continue
+            local_address = fields[1]
+            state = fields[3]
+            if (
+                local_address.rpartition(":")[2].upper() == expected_port
+                and state == "0A"
+            ):
+                return True
+    return False if inspected else None
+
+
 def port_available(port: int) -> tuple[bool, str]:
     sockets: list[socket.socket] = []
     try:
@@ -154,6 +181,15 @@ def port_available(port: int) -> tuple[bool, str]:
                 listener.bind(address)
                 sockets.append(listener)
             except OSError as error:
+                listener.close()
+                if error.errno == errno.EACCES and sys.platform.startswith("linux"):
+                    has_listener = linux_tcp_port_has_listener(port)
+                    if has_listener is False:
+                        # Docker publishes the port through its daemon, so the
+                        # installer's own privileged-port permission is irrelevant.
+                        continue
+                    if has_listener is True:
+                        return False, "a TCP listener is already using it"
                 return False, str(error)
     finally:
         for listener in sockets:

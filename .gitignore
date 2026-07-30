@@ -1,4 +1,5 @@
 **/*.log
+**/git-diff.txt
 **/database.sqlite*
 /services/**/backups/
 /services/**/config/

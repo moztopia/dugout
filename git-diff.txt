@@ -1,0 +1,38 @@
+= git status -s ======================================
+?? git-diff.txt
+= git diff ===========================================
+= git ls-files --others --exclude-standard ===========
+git-diff.txt
+======================================================
+Using the following format, provide a 'git add' and 'git commit' command for the specified files. The command must be provided in a single code block as shown below:
+
+git add <file1> <file2> ...
+
+git commit -m "category(sub-category): <commit message>
+
+<extended description>
+
+- <bullet items describing key points of the commit>"
+
+
+Approved Commit Categories
+
+You must only use one of the following categories:
+
+* feat: A new feature for the user.
+* fix: A bug fix (includes performance improvements).
+* docs: Documentation only changes.
+* style: Changes that do not affect the meaning of the code (white-space, formatting, etc.).
+* refactor: A code change that neither fixes a bug nor adds a feature.
+* test: Adding missing tests or correcting existing tests.
+* chore: Updating build configurations, package manager files, etc.
+* build: Changes that affect the build system or external dependencies.
+* agent: Changes related to AI-driven workflows or agent behavior.
+
+Caveats:
+
+* The commit message category(sub-category) must be relevant to ALL files staged in the commit.
+* If multiple logical changes are present, only generate the first logical commit.
+* Do not dump unrelated changes into one commit.
+* Keep the commit message concise but descriptive.
+* Always wrap the entire commit message (header, description, and bullet points) inside a single set of double quotes to ensure terminal compatibility.

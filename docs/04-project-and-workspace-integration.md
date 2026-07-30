@@ -208,6 +208,10 @@ clearer in automation; natural commands are nicer for developers.
 
 Make must not recursively invoke a host command by resetting `PATH`.
 
+Make targets used on a production server must use ordinary commands and must
+not invoke `dug` explicitly. Explicit `dug tool ...` recipes are limited to
+clearly development-only or CI-only targets.
+
 ## Scripts and shebangs
 
 A script using:
@@ -233,6 +237,59 @@ For project automation, the clearer initial form is:
 ```sh
 php path/to/script.php
 ```
+
+## Deployment and server behavior
+
+Dugout is never installed or activated on the production server:
+
+- no `dug` runner;
+- no Dugout tool images;
+- no `.dugout/bin` entry in `PATH`;
+- no `moznet`;
+- no dependency on the Dugout repository or service plane.
+
+Deployable scripts use ordinary command names:
+
+```sh
+php script.php
+node script.js
+npm run production-task
+```
+
+The environment decides which executable satisfies the command:
+
+| Environment | Command resolution |
+| --- | --- |
+| Development workspace | Project shim, then Dugout tool container |
+| Optional Dugout-aware CI | Explicit CI-selected Dugout image or runner |
+| Production server | Server-local executable from the server's `PATH` |
+
+Scripts using `#!/usr/bin/env php` or `#!/usr/bin/env node` follow the same
+rule. Nothing in the script is rewritten during deployment.
+
+Deployment artifacts should exclude:
+
+```text
+.dugout/
+.vscode/
+*.code-workspace
+```
+
+Deployable scripts, Make targets, hooks, and service commands must never refer
+directly to:
+
+```text
+dug
+.dugout/bin/php
+.dugout/bin/node
+```
+
+Production provisioning is responsible for installing compatible server-local
+versions. Dugout version pins do not provision or override the server.
+
+Before release, the project must be tested with the Dugout shim directory
+removed from `PATH`. This proves that deployment behavior does not depend on
+development command interception.
 
 ## VS Code tasks
 

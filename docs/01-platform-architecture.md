@@ -87,6 +87,15 @@ centralized at Dugout's edge.
 - authenticating registry and external-service clients;
 - approving access to credentials, devices, or the Docker socket.
 
+### Production provisioning owns
+
+- server-local language runtimes and command-line tools;
+- production runtime versions and extensions;
+- the production `PATH`;
+- deployment artifact contents;
+- production networks, which are unrelated to `moznet`;
+- verification that deployed scripts have no Dugout dependency.
+
 ## Proposed tool plane
 
 The tool plane adds independent, short-lived command containers:
@@ -161,6 +170,73 @@ A devcontainer can remain an optional client. If used, its terminal should
 resolve the same project shims and call the same runner contract. It must not
 contain the only working copy of the toolchain.
 
+## Deployment boundary
+
+Dugout exists on development machines only. It is not installed, copied,
+started, or activated on a production server.
+
+```mermaid
+flowchart LR
+    subgraph development["Development machine"]
+        devPath["Development PATH"]
+        shims["Project Dugout shims"]
+        runner["dug runner"]
+        images["Dugout tool images"]
+
+        devPath --> shims --> runner --> images
+    end
+
+    source["Deployable project scripts"]
+
+    subgraph production["Production server"]
+        serverPath["Server PATH"]
+        serverTools["Server-local PHP, Node, and other tools"]
+
+        serverPath --> serverTools
+    end
+
+    source -->|"development execution"| devPath
+    source -->|"server execution"| serverPath
+```
+
+The same deployable script may use:
+
+```sh
+php script.php
+```
+
+or:
+
+```text
+#!/usr/bin/env php
+```
+
+During development, `PATH` selects `.dugout/bin/php`. On the server, the shim
+directory is absent from `PATH`, so the server's locally provisioned `php`
+binary is selected.
+
+Deployable scripts must not call:
+
+```sh
+dug tool php script.php
+```
+
+and must not hard-code `.dugout/bin/php`. Those forms create a production
+dependency on a development-only platform.
+
+Deployment packaging should exclude development integration such as:
+
+```text
+.dugout/
+.vscode/
+*.code-workspace
+```
+
+If a source-based deployment cannot exclude committed metadata, it must remain
+inert: `dug` is not installed, `.dugout/bin` is not added to `PATH`, and no
+production process references it. The preferred design is to omit it from the
+artifact entirely.
+
 ## `moznet` lifecycle
 
 `moznet` is external to application Compose projects. Docker Compose treats an
@@ -194,6 +270,10 @@ The implementation must preserve these invariants:
 10. Version selection is committed and reviewable.
 11. Mutable tags are optional conveniences, not reproducibility guarantees.
 12. Essential project behavior works without VS Code.
+13. Dugout is absent from production servers.
+14. Deployable scripts never invoke `dug` or `.dugout/bin/*` directly.
+15. The server resolves ordinary commands through its independently managed
+    `PATH`.
 
 ## Source references
 

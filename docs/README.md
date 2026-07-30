@@ -29,6 +29,10 @@ exists.
 - Project behavior does not depend on a devcontainer.
 - A devcontainer may consume the same commands as an optional editor
   environment, but it does not become a second toolchain.
+- Production servers do not contain Dugout, the `dug` runner, Dugout shims,
+  Dugout tool images, or `moznet`.
+- Deployable project scripts use ordinary command names so the development
+  `PATH` selects Dugout shims and the server `PATH` selects server-local tools.
 
 ## Documents
 
@@ -85,6 +89,9 @@ The tool plane is not intended to:
 - hide incompatible language runtimes;
 - make every possible tool image tiny at the cost of correctness;
 - require VS Code or any particular editor.
+- install or activate Dugout on production servers.
+- make a deployed application depend on the `dug` runner, project shims,
+  Dugout images, or `moznet`.
 
 ## Decision summary
 
@@ -101,3 +108,5 @@ The proposed direction is:
 - Images never publish ports.
 - Image size matters, but runtime compatibility and predictable behavior matter
   more than winning an artificial size contest.
+- Dugout ends at the development/optional-CI boundary. Production provisioning
+  independently owns every server-side runtime and command.

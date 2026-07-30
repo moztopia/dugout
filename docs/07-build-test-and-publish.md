@@ -249,6 +249,40 @@ They should also prove:
 - lock resolution uses the expected digest;
 - a command from `nested/directory` sees the correct container directory.
 
+## Production-independence tests
+
+Dugout may be used during development and optionally in CI, but it must never
+be a production runtime dependency.
+
+Maintain a deployment-artifact test that:
+
+1. creates the same artifact sent to the server;
+2. confirms `.dugout/`, `.vscode/`, and workspace files are absent when the
+   packaging model supports exclusions;
+3. removes `.dugout/bin` from `PATH`;
+4. makes `dug` unavailable;
+5. scans deployable scripts, Make targets, hooks, and service definitions for
+   direct `dug` or `.dugout/bin` references;
+6. executes representative scripts using provisioned local tools;
+7. verifies no production Compose/network definition references `moznet`.
+
+An optional CI job can execute Dugout images to build or validate the artifact.
+The resulting artifact and server runtime must not require those images.
+
+```mermaid
+flowchart LR
+    dugout["Optional Dugout build or validation"]
+    artifact["Deployment artifact"]
+    server["Server-local runtime and PATH"]
+    application["Running application"]
+
+    dugout --> artifact
+    artifact --> server --> application
+```
+
+There is deliberately no runtime edge from Dugout to the server or running
+application.
+
 ## Publishing pipeline
 
 For each tool release:
@@ -371,6 +405,7 @@ from untrusted contexts must not receive publish credentials.
 - [ ] Digest recorded
 - [ ] Published image smoke-tested
 - [ ] Documentation updated
+- [ ] Deployment artifact has no Dugout runtime dependency
 
 ## Source references
 

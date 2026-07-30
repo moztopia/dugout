@@ -116,6 +116,8 @@ Test:
 - non-interactive command execution;
 - a workspace path containing spaces in the test fixture;
 - branch switching where the manifest changes.
+- a deployment-like shell with Dugout removed from `PATH`, using independently
+  installed local tools.
 
 ## Phase 4: PHP family
 
@@ -466,3 +468,6 @@ The system is ready for broad adoption when:
 - no tool publishes ports;
 - CI consumes the same image digests;
 - rollback has been exercised, not merely described.
+- production servers contain no Dugout runner, shims, tool images, or
+  `moznet`;
+- deployable scripts resolve server-local tools through the server's `PATH`.

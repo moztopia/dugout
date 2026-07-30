@@ -75,10 +75,6 @@ set_config_default() {
       [ -n "${DUGOUT_NPX_NETWORK+x}" ] ||
         DUGOUT_NPX_NETWORK="${config_value}"
       ;;
-    DUGOUT_MOZNET_NAME)
-      [ -n "${DUGOUT_MOZNET_NAME+x}" ] ||
-        DUGOUT_MOZNET_NAME="${config_value}"
-      ;;
     DUGOUT_MINIO_ROOT_USER)
       [ -n "${DUGOUT_MINIO_ROOT_USER+x}" ] ||
         DUGOUT_MINIO_ROOT_USER="${config_value}"
@@ -183,7 +179,6 @@ apply_config_defaults() {
   DUGOUT_NODE_NETWORK="${DUGOUT_NODE_NETWORK:-none}"
   DUGOUT_NPM_NETWORK="${DUGOUT_NPM_NETWORK:-bridge}"
   DUGOUT_NPX_NETWORK="${DUGOUT_NPX_NETWORK:-bridge}"
-  DUGOUT_MOZNET_NAME="${DUGOUT_MOZNET_NAME:-moznet}"
   DUGOUT_DOCKER="${DUGOUT_DOCKER:-docker}"
 
   case "${DUGOUT_IMAGE_PREFIX}" in
@@ -201,12 +196,6 @@ apply_config_defaults() {
   validate_network "DUGOUT_NODE_NETWORK" "${DUGOUT_NODE_NETWORK}"
   validate_network "DUGOUT_NPM_NETWORK" "${DUGOUT_NPM_NETWORK}"
   validate_network "DUGOUT_NPX_NETWORK" "${DUGOUT_NPX_NETWORK}"
-
-  case "${DUGOUT_MOZNET_NAME}" in
-    "" | *[!A-Za-z0-9_.-]*)
-      fail "invalid DUGOUT_MOZNET_NAME: ${DUGOUT_MOZNET_NAME}"
-      ;;
-  esac
 
   case "${DUGOUT_DOCKER}" in
     "" | *'
@@ -413,10 +402,10 @@ selected_network() {
       printf '%s\n' "${network}"
       ;;
     moznet)
-      "${DOCKER_COMMAND}" network inspect "${DUGOUT_MOZNET_NAME}" \
+      "${DOCKER_COMMAND}" network inspect moznet \
         >/dev/null 2>&1 ||
-        fail "tool ${POLICY_TOOL} requires ${DUGOUT_MOZNET_NAME}; start or repair Dugout first"
-      printf '%s\n' "${DUGOUT_MOZNET_NAME}"
+        fail "tool ${POLICY_TOOL} requires moznet; start or repair Dugout first"
+      printf '%s\n' "moznet"
       ;;
     *)
       fail "unsupported network: ${network}"
@@ -563,12 +552,12 @@ doctor() {
 
   printf '%s\n' "Docker daemon is available."
 
-  if "${DOCKER_COMMAND}" network inspect "${DUGOUT_MOZNET_NAME}" \
+  if "${DOCKER_COMMAND}" network inspect moznet \
     >/dev/null 2>&1; then
-    printf '%s\n' "${DUGOUT_MOZNET_NAME} is available."
+    printf '%s\n' "moznet is available."
   else
     printf '%s\n' \
-      "${DUGOUT_MOZNET_NAME} is unavailable; moznet tools will not run." >&2
+      "moznet is unavailable; moznet tools will not run." >&2
   fi
 
   verify_project

@@ -109,5 +109,5 @@ volumes:
 
 networks:
   moznet:
-    name: ${DUGOUT_MOZNET_NAME:-moznet}
+    name: moznet
     driver: bridge

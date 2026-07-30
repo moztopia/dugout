@@ -154,10 +154,11 @@ Allowed values:
 - `bridge`;
 - `moznet`.
 
-`DUGOUT_MOZNET_NAME` maps the logical `moznet` policy to the globally named
-Docker network managed by Dugout Compose. Its default is `moznet`.
+The `moznet` policy always maps to the Docker network named exactly `moznet`.
+The name is a platform invariant and is not configurable because application
+Compose projects consume that exact external network.
 
-The runner inspects this network before a `moznet` invocation. It never creates
+The runner inspects `moznet` before a `moznet` invocation. It never creates
 the network and never publishes a port; `make services-up` creates it.
 
 ## Service-plane settings

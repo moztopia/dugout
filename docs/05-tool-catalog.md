@@ -211,7 +211,7 @@ different behavior from CI.
 - `shellcheck`
 - `shfmt`
 - the `dug` runner;
-- project shims;
+- shared Dugout command shims;
 - contract-test fixture.
 
 ### Language release

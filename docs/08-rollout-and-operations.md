@@ -90,14 +90,16 @@ artifacts; they are poor tools for debugging the runner's fundamentals.
 
 ## Phase 3: first project adoption
 
-Choose one active project, initially Hearts, and add:
+Choose one active project, initially Hearts. Add Dugout as a named workspace
+folder and manually prepend its shared `bin` directory to the integrated
+terminal `PATH`.
 
 ```text
-.dugout/bin/
-.dugout/tool-versions
-.dugout/tool-lock.json
-.vscode/settings.json
+hearts.code-workspace
 ```
+
+Do not copy shims into Hearts. A version manifest is optional and should be
+added only when Hearts intentionally differs from machine defaults.
 
 Start with the low-risk shims. Verify behavior:
 
@@ -115,7 +117,7 @@ Test:
 - Make targets;
 - non-interactive command execution;
 - a workspace path containing spaces in the test fixture;
-- branch switching where the manifest changes.
+- branch switching when an optional manifest changes;
 - a deployment-like shell with Dugout removed from `PATH`, using independently
   installed local tools.
 
@@ -212,37 +214,13 @@ Every proposal follows the checklist in
 
 ## Project initialization
 
-Proposed command:
+Project adoption is intentionally manual. Follow the
+[new-project quick start](10-new-project-quickstart.md).
 
-```sh
-dug init
-```
-
-Interactive initialization may:
-
-1. detect languages and existing version files;
-2. propose—but not silently choose—tool versions;
-3. create `.dugout/tool-versions`;
-4. generate minimal shims;
-5. create a lock file;
-6. show the exact workspace-setting change;
-7. optionally create `.envrc`;
-8. run `dug verify`;
-9. leave existing editor and shell files untouched unless approved.
-
-Non-interactive form:
-
-```sh
-dug init \
-  --tool php=8.4.12 \
-  --tool composer=2.8.10 \
-  --tool node=24.5.0 \
-  --tool npm=11.5.1 \
-  --tool npx=11.5.1
-```
-
-Initialization must be idempotent and must not overwrite hand-edited files
-without showing a diff and receiving explicit approval.
+No `dug init` command rewrites editor or project files. A developer reviews
+the existing workspace, merges the named Dugout folder and terminal `PATH`
+setting, then verifies the result. This protects arbitrary user-owned folders,
+settings, tasks, extensions, and comments already in that file.
 
 ## Daily operation
 
@@ -443,8 +421,8 @@ variable.
 
 Removal should be reversible:
 
-1. remove `.dugout/bin` from workspace and shell `PATH`;
-2. remove or archive the project's `.dugout` manifest and lock;
+1. remove `dugout/bin` from workspace and shell `PATH`;
+2. remove or archive an optional project manifest and lock;
 3. replace explicit `dug tool` automation calls;
 4. verify host or alternative toolchain commands;
 5. delete project-specific cache volumes only after confirming they are not

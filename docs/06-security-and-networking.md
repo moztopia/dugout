@@ -272,16 +272,15 @@ Projects should lock images by digest once the locking workflow exists.
 
 ## Repository trust
 
-Adding `.dugout/bin` to the front of `PATH` gives repository content priority
-over host tools. This is powerful by design.
+Adding Dugout's shared `bin` directory to the front of `PATH` gives
+Dugout-owned executables priority over host tools. This is powerful by design.
 
 Controls:
 
-- shims contain only the minimal delegation contract;
-- generated shims are deterministic;
-- changes to `.dugout/` receive code review;
+- shared shims contain only the minimal delegation contract;
+- shim changes receive review in the Dugout repository;
+- projects do not supply executable shims;
 - VS Code Workspace Trust remains enabled;
-- `direnv` requires explicit approval;
 - the runner never executes the manifest as shell;
 - the lock file is parsed as data;
 - unknown manifest fields fail closed.
@@ -307,11 +306,11 @@ Runner diagnostics belong on standard error.
 ### A malicious project checkout
 
 Risk:
-: A shim or manifest tricks a developer into running unexpected code.
+: A manifest tricks a developer into selecting an unexpected image.
 
 Controls:
-: Workspace Trust, `direnv allow`, tiny audited shims, data-only manifests,
-  clear image resolution through `dug which`.
+: Workspace Trust, shared audited shims, data-only manifests, and clear image
+  resolution through `dug which`.
 
 ### A compromised tool image
 

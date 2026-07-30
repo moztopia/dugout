@@ -2,8 +2,8 @@
 
 ## Status
 
-The Dugout service plane exists today. The tool plane described below is a
-proposed extension.
+The Dugout service plane exists today. The initial tool plane is implemented
+for PHP, Composer, Node.js, npm, and npx.
 
 ## Existing service plane
 
@@ -72,8 +72,7 @@ centralized at Dugout's edge.
 
 - its application services;
 - which application services connect to `moznet`;
-- selected tool versions;
-- project-local command shims;
+- optional project-specific tool-version overrides;
 - tool-specific environment values;
 - editor and workspace configuration;
 - project dependencies such as PHPUnit, Pint, ESLint, or Vitest;
@@ -83,7 +82,7 @@ centralized at Dugout's edge.
 
 - starting Dugout;
 - installing and running Docker;
-- choosing whether project shims are active outside the editor;
+- choosing whether Dugout shims are active outside the editor;
 - authenticating registry and external-service clients;
 - approving access to credentials, devices, or the Docker socket.
 
@@ -96,16 +95,16 @@ centralized at Dugout's edge.
 - production networks, which are unrelated to `moznet`;
 - verification that deployed scripts have no Dugout dependency.
 
-## Proposed tool plane
+## Tool plane
 
 The tool plane adds independent, short-lived command containers:
 
 ```mermaid
 flowchart TB
     command["Developer types<br/><code>php artisan</code>"]
-    shim["Shell resolves project shim<br/><code>.dugout/bin/php</code>"]
+    shim["Shell resolves shared shim<br/><code>dugout/bin/php</code>"]
     delegate["Shim delegates<br/><code>dug tool php artisan</code>"]
-    runner["Runner reads project manifest and policy"]
+    runner["Runner reads machine config, optional manifest, and policy"]
 
     subgraph resolution["Runner resolution"]
         root["Resolve project root and relative working directory"]
@@ -147,13 +146,13 @@ lifecycle is deliberately different:
 | `moznet` | Normal for shared services | Explicit and exceptional |
 | Workspace mount | Usually none | Project root |
 | Host UID/GID | Service-specific | Required for writable project files |
-| Version selection | Dugout Compose | Project tool manifest |
+| Version selection | Dugout Compose | Dugout `.env`; optional project manifest |
 | State | Named volumes and config | Project files and explicit caches only |
 
 ## Why the tool plane is not a devcontainer
 
-A devcontainer is a complete editor-facing workspace environment. The proposed
-tool plane instead virtualizes individual commands.
+A devcontainer is a complete editor-facing workspace environment. The tool
+plane instead virtualizes individual commands.
 
 That distinction provides several benefits:
 
@@ -167,8 +166,8 @@ That distinction provides several benefits:
 - the Docker socket is not mounted into a general-purpose development shell.
 
 A devcontainer can remain an optional client. If used, its terminal should
-resolve the same project shims and call the same runner contract. It must not
-contain the only working copy of the toolchain.
+resolve the same shared Dugout shims and call the same runner contract. It must
+not contain the only working copy of the toolchain.
 
 ## Deployment boundary
 
@@ -179,7 +178,7 @@ started, or activated on a production server.
 flowchart LR
     subgraph development["Development machine"]
         devPath["Development PATH"]
-        shims["Project Dugout shims"]
+        shims["Shared dugout/bin shims"]
         runner["dug runner"]
         images["Dugout tool images"]
 
@@ -211,7 +210,7 @@ or:
 #!/usr/bin/env php
 ```
 
-During development, `PATH` selects `.dugout/bin/php`. On the server, the shim
+During development, `PATH` selects `dugout/bin/php`. On the server, the shim
 directory is absent from `PATH`, so the server's locally provisioned `php`
 binary is selected.
 
@@ -221,21 +220,19 @@ Deployable scripts must not call:
 dug tool php script.php
 ```
 
-and must not hard-code `.dugout/bin/php`. Those forms create a production
+and must not hard-code `dugout/bin/php`. Those forms create a production
 dependency on a development-only platform.
 
 Deployment packaging should exclude development integration such as:
 
 ```text
-.dugout/
 .vscode/
 *.code-workspace
 ```
 
-If a source-based deployment cannot exclude committed metadata, it must remain
-inert: `dug` is not installed, `.dugout/bin` is not added to `PATH`, and no
-production process references it. The preferred design is to omit it from the
-artifact entirely.
+An optional `.dugout/tool-versions` manifest is inert data and contains no
+shim. It should still be omitted when the packaging model excludes development
+metadata.
 
 ## `moznet` lifecycle
 
@@ -267,11 +264,12 @@ The implementation must preserve these invariants:
 7. Arguments are forwarded without reparsing or `eval`.
 8. Running from a project subdirectory preserves that relative directory.
 9. `moznet` access is explicit.
-10. Version selection is committed and reviewable.
+10. Version selection is explicit in Dugout `.env` or an optional project
+    manifest.
 11. Mutable tags are optional conveniences, not reproducibility guarantees.
 12. Essential project behavior works without VS Code.
 13. Dugout is absent from production servers.
-14. Deployable scripts never invoke `dug` or `.dugout/bin/*` directly.
+14. Deployable scripts never invoke `dug` or `dugout/bin/*` directly.
 15. The server resolves ordinary commands through its independently managed
     `PATH`.
 

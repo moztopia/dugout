@@ -2,142 +2,111 @@
 
 ## Goal
 
-Inside a configured project, this:
+In a VS Code terminal opened from an activated project workspace:
 
 ```sh
 php artisan migrate
 ```
 
-must run the project-selected PHP tool image—not whichever PHP binary happens
-to be installed on the host.
+runs the configured Dugout PHP image, even if the host has another `php`
+installed. The host installation remains untouched and becomes visible again
+outside the activated terminal.
 
-The proposed implementation has two layers:
-
-1. project-local shims participate in normal shell `PATH` lookup;
-2. one shared runner converts tool invocations into consistent containers.
-
-## Proposed project layout
+## Components and ownership
 
 ```text
-project/
-├── .dugout/
-│   ├── bin/
-│   │   ├── composer
-│   │   ├── node
-│   │   ├── npm
-│   │   ├── npx
-│   │   └── php
-│   ├── tool-versions
-│   └── tool-lock.json
-├── .vscode/
-│   └── settings.json
-└── ...
+dugout/
+├── .env                 # local machine values; ignored
+├── .env.example         # committed configuration contract
+├── bin/
+│   ├── dug              # shared runner
+│   ├── php              # POSIX shims
+│   ├── composer
+│   ├── node
+│   ├── npm
+│   └── npx
+└── share/dugout/catalog # trusted tool policy
 ```
 
-`tool-lock.json` is optional in the first implementation but recommended
-before Dugout promises reproducible releases.
+All executable interception lives in Dugout. Application projects do not copy
+the shims or runner.
 
-## Shim contract
+## POSIX shim contract
 
-A shim is deliberately boring:
+The PHP shim is representative:
 
 ```sh
 #!/bin/sh
 set -eu
 
-exec dug tool php "$@"
+exec "$(CDPATH='' cd "$(dirname "$0")" && pwd)/dug" tool php "$@"
 ```
 
-Each shim:
+Every shim:
 
-- is committed to the project;
-- is named exactly like the command it replaces;
-- uses POSIX `sh`;
-- forwards arguments with `"$@"`;
-- uses `exec` so signals and exit status are preserved;
-- contains no version or Docker logic;
-- fails if the `dug` runner is unavailable;
-- never falls back to the host tool.
+- uses `#!/bin/sh`, not Python or Bash;
+- finds `dug` beside itself, so no global runner installation is required;
+- forwards arguments as `"$@"`, preserving spaces and argument boundaries;
+- uses `exec`, preserving signals and the final exit status;
+- contains no image, version, network, or Docker policy;
+- fails when Dugout cannot run and never calls a host tool as fallback.
 
-Silent fallback is dangerous because two developers can type the same command
-and receive different dependency graphs or generated files.
+This makes aliases unnecessary. Real executables in `PATH` also work in
+non-interactive shells, child processes, Make recipes, and ordinary shell
+scripts.
 
-## Runner location
+## Resolution flow
 
-The proposed runner executable is `dug`. It is installed once on the
-development machine, for example under:
+```mermaid
+sequenceDiagram
+    participant Shell
+    participant Shim as dugout/bin/php
+    participant Dug as dug runner
+    participant Docker
+    participant Tool as PHP container
 
-```text
-~/.local/bin/dug
+    Shell->>Shim: php artisan migrate
+    Shim->>Dug: dug tool php artisan migrate
+    Dug->>Dug: Load .env and catalog
+    Dug->>Dug: Resolve project root, image, network, mounts
+    Dug->>Docker: docker run ... image artisan migrate
+    Docker->>Tool: exec php artisan migrate
+    Tool-->>Docker: stdout, stderr, exit status
+    Docker-->>Dug: same exit status
+    Dug-->>Shim: same exit status
+    Shim-->>Shell: same exit status
 ```
 
-The Dugout repository owns the source and installation/update procedure.
-Projects own only their shims and manifest.
+## Configuration precedence
 
-A project may vendor a known runner version later, but the initial design
-should avoid copying complex Docker logic into every repository.
+The runner determines values in this order, from highest to lowest priority:
 
-## Tool selection
+1. an exported process environment value such as
+   `DUGOUT_NODE_VERSION=24`;
+2. the file named by `DUGOUT_CONFIG`;
+3. Dugout's root `.env` when running from the source checkout;
+4. `~/.config/dugout/.env` for an installed runner;
+5. built-in safe defaults.
 
-A minimal proposed `.dugout/tool-versions` format is line-oriented:
+The configuration parser accepts documented `KEY=value` records only. It does
+not `source`, `eval`, interpolate, or execute `.env`. See the complete
+[configuration reference](09-configuration-reference.md).
 
-```text
-php 8.4.12
-composer 2.8.10
-node 24.5.0
-npm 11.5.1
-npx 11.5.1
-shellcheck 0.11.0
-```
+## Project root discovery
 
-Rules:
+The runner must expose only the current project, not all sibling repositories.
+It resolves the root in this order:
 
-- blank lines are ignored;
-- lines beginning with `#` are comments;
-- the first field is the shim/tool name;
-- the second field is an exact version or approved tag;
-- duplicate tool entries are an error;
-- unknown fields are an error rather than silently ignored;
-- the manifest is never sourced as shell code.
+1. `DUGOUT_PROJECT_ROOT`, when explicitly configured;
+2. the nearest ancestor containing `.dugout/tool-versions`;
+3. `git rev-parse --show-toplevel`;
+4. the current directory when no Git project exists.
 
-Not sourcing the file avoids turning a data file into arbitrary code execution.
+The current directory must be the root or below it. Paths containing commas
+are rejected because Docker's structured mount syntax uses commas as
+separators.
 
-The optional lock file maps each selection to a digest:
-
-```json
-{
-  "schema": 1,
-  "tools": {
-    "php": {
-      "image": "ghcr.io/moztopia/dugout-php:8.4.12",
-      "digest": "sha256:..."
-    }
-  }
-}
-```
-
-When a valid lock entry exists, the runner executes the digest-pinned image.
-
-## Repository-root discovery
-
-The runner must work from any directory inside the project:
-
-```sh
-cd frontend/src
-node script.js
-```
-
-Resolution order:
-
-1. walk upward from the current directory for `.dugout/tool-versions`;
-2. optionally use `git rev-parse --show-toplevel` as a consistency check;
-3. fail clearly if no Dugout project manifest is found.
-
-The manifest location defines the workspace root. This also supports projects
-that are not Git repositories and avoids accidentally selecting a parent Git
-repository's tools.
-
-The runner computes the current path relative to the workspace root:
+Example:
 
 ```text
 host root:       /home/developer/Code/hearts
@@ -146,230 +115,151 @@ container root:  /workspace
 container cwd:   /workspace/frontend/src
 ```
 
-It then mounts the root once and passes the translated directory through
-Docker's `--workdir`.
+## Image selection
 
-The implementation must reject:
+Without a project manifest, tags derive from the machine configuration:
 
-- a current directory outside the discovered workspace;
-- path traversal that escapes `/workspace`;
-- a workspace root that does not exist;
-- ambiguous nested manifests unless explicitly supported.
+| Command | Default image |
+| --- | --- |
+| `php` | `moztopia/dugout-php:8.4` |
+| `composer` | `moztopia/dugout-composer:2-php84` |
+| `node` | `moztopia/dugout-node:22` |
+| `npm` | `moztopia/dugout-npm:10-node22` |
+| `npx` | `moztopia/dugout-npx:10-node22` |
 
-## Baseline container invocation
+The prefix and component versions are configurable. Composer's tag includes
+the selected PHP line; npm and npx tags include the Node.js line. This prevents
+an apparently harmless package-manager upgrade from silently changing its
+runtime.
 
-Conceptually, an ordinary tool becomes:
+An application may optionally commit:
+
+```text
+# .dugout/tool-versions
+php 8.4
+composer 2-php84
+node 22
+npm 10-node22
+npx 10-node22
+```
+
+The manifest contains image tags, not shell code. Blank lines and comments are
+allowed; duplicates, malformed rows, missing requested tools, and unsafe tag
+characters fail closed. It is optional: Hearts does not need one for the
+machine-default configuration.
+
+## Container invocation
+
+The runner constructs an argument vector equivalent to:
 
 ```sh
 docker run \
   --rm \
   --init \
   --interactive \
+  --read-only \
+  --label "dev.moztopia.dugout.tool=php" \
   --user "<uid>:<gid>" \
   --workdir "/workspace/<relative-directory>" \
-  --mount "type=bind,src=<workspace-root>,dst=/workspace" \
-  --tmpfs "/tmp:rw,nosuid,nodev" \
+  --mount "type=bind,src=<project-root>,dst=/workspace" \
+  --tmpfs "/tmp:rw,nosuid,nodev,exec" \
   --env "HOME=/tmp/dugout-home" \
   --security-opt "no-new-privileges=true" \
   --cap-drop "ALL" \
-  "<resolved-image>" \
+  --network "<policy-selected-network>" \
+  "moztopia/dugout-php:8.4" \
   "$@"
 ```
 
-This is a design sketch. The implementation must build an argument vector and
-must not use `eval`.
+The implementation does not build a shell string and does not use `eval`.
+When both input and output are terminals it adds `--tty`. Non-interactive
+calls keep stdin attached without forcing terminal formatting.
 
-## Standard input and TTY behavior
+## Mounts and file ownership
 
-The runner must distinguish interaction from automation.
+- The resolved project root is mounted once at `/workspace`.
+- The nested working directory is preserved.
+- Writable tools see a writable project mount.
+- The container uses the caller's numeric UID and GID.
+- The image root filesystem is read-only.
+- `/tmp` is a disposable tmpfs and provides a writable temporary `HOME`.
+- Composer and npm receive only their explicit Dugout cache directory.
+- The host home directory and Docker socket are not mounted.
 
-| Caller | Docker flags |
+These rules prevent root-owned generated files while containing writes to the
+project, declared caches, and temporary storage.
+
+## Networks
+
+The committed catalog defines baseline policy and `.env` can choose one of:
+
+| Value | Meaning |
 | --- | --- |
-| Interactive stdin and terminal output | `--interactive --tty` |
-| Piped stdin, non-TTY output | `--interactive` |
-| No useful stdin | no interactive flag required |
+| `none` | No container network |
+| `bridge` | Docker's ordinary bridge; useful for package downloads |
+| `moznet` | Dugout's existing external development network |
 
-Always forcing `--tty` corrupts some machine-readable output and fails in CI.
-Never attaching stdin breaks REPLs and commands that consume pipes.
+The runner never creates `moznet`. A tool configured for `moznet` fails with a
+clear error if the network is absent. No invocation adds `--publish`,
+`--privileged`, or the Docker socket.
 
-Required tests include:
+The current defaults are:
 
-```sh
-php --version
-printf '%s\n' '<?php echo 42;' | php
-npm --version
-dockerless-command > result.txt
-```
-
-## Exit codes and signals
-
-The shim uses `exec`, the runner returns Docker's exit status, and the image
-uses an exec-form entrypoint. Together these ensure:
-
-```mermaid
-flowchart TB
-    tool["Tool exit status"]
-    container["Container exit status"]
-    docker["docker run exit status"]
-    dug["dug exit status"]
-    shim["Shim exit status"]
-
-    tool --> container --> docker --> dug --> shim
-```
-
-`--init` provides a minimal init process for child reaping and signal
-forwarding. The runner must not translate a failing tool into a successful
-wrapper exit.
-
-## File ownership
-
-Writable tools normally run as:
-
-```text
---user $(id -u):$(id -g)
-```
-
-This prevents root-owned project files. The runner must also set a writable
-temporary `HOME`, because many tools assume one exists.
-
-On platforms where Docker Desktop virtualizes ownership differently, the
-runner may need an operating-system-specific adapter. That behavior must be
-explicit and tested rather than hidden in individual shims.
-
-## Caches
-
-Cache mounts are selected from trusted runner metadata, not arbitrary image
-behavior.
-
-Conceptual examples:
-
-| Cache volume | Container path |
+| Tool | Network |
 | --- | --- |
-| `dugout-composer-v2-linux-amd64-glibc` | `/cache/composer` |
-| `dugout-npm-node24-linux-amd64-glibc` | `/cache/npm` |
+| PHP | `moznet` |
+| Composer | `bridge` |
+| Node.js | `none` |
+| npm | `bridge` |
+| npx | `bridge` |
 
-The runner should provide:
-
-```sh
-dug cache list
-dug cache inspect npm
-dug cache clear npm
-dug cache clear --all
-```
-
-Cache deletion must never delete project files. Cache target resolution must
-use exact, validated Docker volume names.
-
-## Network flags
-
-Suggested user interface:
+Any command can receive a one-call override:
 
 ```sh
-dug tool shellcheck scripts/setup.sh
-dug tool composer install
-dug --network moznet tool mariadb --host hearts_database
-dug --network none tool npm test
+dug --network none tool composer validate
+dug --network moznet tool php artisan migrate
 ```
 
-Policy rules:
-
-- an image's declared default is used when the caller gives no override;
-- a stricter override is always allowed;
-- a broader override may require project policy or explicit confirmation;
-- `moznet` must already exist;
-- no tool invocation publishes ports;
-- Docker API access is separate from ordinary network access.
-
-## Environment forwarding
-
-The default environment is empty except for runner-controlled values such as:
+## Commands
 
 ```text
-HOME
-TERM
-NO_COLOR
-FORCE_COLOR
-CI
-```
-
-Even these should be forwarded only when meaningful.
-
-Project manifests may allow specific names:
-
-```text
-APP_ENV
-COMPOSER_AUTH
-NPM_CONFIG_REGISTRY
-```
-
-The runner must not forward the entire host environment. In particular, it
-must not automatically expose:
-
-- cloud credentials;
-- SSH agents or keys;
-- GitHub tokens;
-- Docker configuration;
-- password-manager sessions;
-- unrelated application secrets.
-
-## Proposed runner commands
-
-```text
-dug doctor
-dug install
-dug update
-dug tool <name> [arguments...]
-dug list
-dug which <name>
-dug image <name>
-dug pull [name...]
-dug lock
-dug verify
-dug cache list
-dug cache clear <name>
-dug network check
+dug tool <name> [arguments...]  Run a tool
+dug image <name>                Print its resolved image
+dug which <name>                Print its shim and image
+dug list                        List configured tools and tags
+dug verify                      Check shims and local images
+dug doctor                      Check Docker, moznet, and configuration
+dug install                     Install runner, shims, catalog, and config
 ```
 
 Examples:
 
 ```sh
+dug list
 dug which php
-# .dugout/bin/php -> ghcr.io/moztopia/dugout-php@sha256:...
-
-dug doctor
-# checks Docker, manifest, shims, image access, ownership, and moznet
-
 dug verify
-# confirms shims and lock entries agree with the manifest
+dug doctor
 ```
 
-## Error messages
+## Script behavior
 
-Failures should explain the next action.
+A shell script launched from an activated terminal inherits `PATH`, so this:
 
-Good:
+```sh
+#!/bin/sh
+set -eu
 
-```text
-dug: no .dugout/tool-versions found at or above:
-  /home/mozrin/Code/hearts/frontend
-
-Run this command inside a configured project or initialize one with:
-  dug init
+php scripts/report.php
+npm --prefix frontend test
 ```
 
-Good:
+uses the same Dugout shims as commands typed interactively. Make recipes and
+child processes follow the same rule.
 
-```text
-dug: tool "mariadb" requires moznet, but the network does not exist.
-Start or repair Dugout, then run:
-  dug network check
-```
+Use project-relative paths for files passed to tools. An absolute host path
+such as `/home/developer/Code/hearts/scripts/report.php` does not exist at that
+location inside the container; the project exists at `/workspace`.
 
-Bad:
-
-```text
-docker: Error response from daemon.
-```
-
-The underlying Docker error may follow the contextual message, but it should
-not be the only explanation.
+Deployable scripts must use ordinary names like `php` and `node`. They must not
+invoke `dug` or a Dugout shim by path. This is what allows production to use
+its own local executables.

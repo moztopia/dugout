@@ -1,0 +1,6 @@
+# tool|default-network|workspace|cache-key
+php|moznet|writable|
+composer|bridge|writable|composer
+node|none|writable|
+npm|bridge|writable|npm
+npx|bridge|writable|npm

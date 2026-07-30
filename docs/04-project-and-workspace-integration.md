@@ -1,80 +1,37 @@
 # Project and workspace integration
 
-## Objective
+## Hearts integration contract
 
-When a developer opens a configured project and creates a terminal, normal
-command lookup should find the project's Dugout shims before host binaries.
-
-This must be an ordinary `PATH` mechanism—not a collection of aliases.
-
-Why shims instead of aliases:
-
-- aliases usually exist only in interactive shells;
-- Make and child processes do not reliably inherit aliases;
-- scripts using `#!/usr/bin/env php` need a real executable in `PATH`;
-- VS Code tasks may use non-interactive shells;
-- `command -v` and `type` can inspect real shims;
-- shims forward exit codes predictably.
-
-## Proposed project files
+Hearts needs exactly one development integration file:
 
 ```text
-.dugout/
-├── bin/
-│   ├── composer
-│   ├── node
-│   ├── npm
-│   ├── npx
-│   └── php
-├── tool-lock.json
-└── tool-versions
+hearts.code-workspace
 ```
 
-All three are committed:
+It does not need copied shims, a runner, an `.env`, or a required
+`.dugout/tool-versions` file. Those belong to Dugout.
 
-- `bin/` defines which ordinary command names the project virtualizes;
-- `tool-versions` defines human-reviewable selections;
-- `tool-lock.json` provides immutable resolution when enabled.
+For another repository, follow the
+[new-project quick start](10-new-project-quickstart.md). Adding the workspace
+entry is always a manual review and edit. No Dugout installation command
+rewrites project or editor files.
 
-The project should also document its expected runner version until runner
-compatibility is machine-verifiable.
+```mermaid
+flowchart LR
+    workspace["hearts.code-workspace"]
+    vscode["New VS Code<br/>integrated terminal"]
+    path["PATH"]
+    dugout["../dugout/bin"]
+    host["existing host PATH"]
 
-## VS Code folder workspace
-
-For a repository opened as a single VS Code folder, proposed
-`.vscode/settings.json`:
-
-```json
-{
-  "terminal.integrated.env.linux": {
-    "PATH": "${workspaceFolder}/.dugout/bin:${env:PATH}"
-  }
-}
+    workspace --> vscode --> path
+    path --> dugout
+    path --> host
 ```
 
-VS Code supports variable substitution for selected terminal environment
-settings, including `${workspaceFolder}` and `${env:NAME}`.
+The workspace names both roots and prepends Dugout's `bin` directory:
 
-After changing the setting, close old terminal instances and create a new
-terminal. Existing terminals retain their existing environment.
-
-Verify:
-
-```sh
-command -v php
-type -a php
-php --version
-dug which php
-```
-
-The first path must be the project shim.
-
-## VS Code multi-root workspace
-
-In a multi-root `.code-workspace` file, use an explicitly scoped folder
-variable to avoid ambiguity:
-
-```json
+```jsonc
 {
   "folders": [
     {
@@ -88,329 +45,248 @@ variable to avoid ambiguity:
   ],
   "settings": {
     "terminal.integrated.env.linux": {
-      "PATH": "${workspaceFolder:hearts}/.dugout/bin:${env:PATH}"
+      "PATH": "${workspaceFolder:dugout}/bin:${env:PATH}"
+    },
+    "terminal.integrated.env.osx": {
+      "PATH": "${workspaceFolder:dugout}/bin:${env:PATH}"
     }
   }
 }
 ```
 
-The folder name in `${workspaceFolder:hearts}` must match a workspace folder
-name. Explicit naming is preferable to relying on a basename that may change.
+`${workspaceFolder:dugout}` refers to the explicitly named multi-root folder.
+This is more stable than embedding an absolute machine path.
 
-This setting routes commands typed in integrated terminals. It does not cause
-the Dugout repository to become part of the application repository, and it
-does not grant containers access to sibling folders.
+## Activation scope
 
-## macOS and Windows
+The setting affects terminals created after the workspace opens:
 
-The initial runner may target Linux first, but the configuration contract
-should reserve platform-specific settings:
+- close or dispose of old integrated terminals after changing the setting;
+- create a new terminal;
+- commands in that terminal and its child processes inherit the modified
+  `PATH`;
+- terminals outside VS Code keep their original `PATH`;
+- production receives neither the workspace file's environment nor Dugout.
 
-```json
-{
-  "terminal.integrated.env.linux": {
-    "PATH": "${workspaceFolder}/.dugout/bin:${env:PATH}"
-  },
-  "terminal.integrated.env.osx": {
-    "PATH": "${workspaceFolder}/.dugout/bin:${env:PATH}"
-  }
-}
-```
+It does not:
 
-Windows support requires a deliberate decision:
+- replace host binaries;
+- modify shell startup files;
+- change Docker Compose;
+- expose ports;
+- mount all workspace folders into a tool container;
+- guarantee that editor extensions inherit terminal settings.
 
-- Git Bash or WSL can use POSIX shims;
-- native PowerShell requires `.ps1` or executable wrappers;
-- Docker Desktop path and ownership semantics differ from Linux;
-- a Windows-native runner must preserve arguments without passing through
-  fragile shell-string composition.
+## Verification
 
-Do not claim native Windows support until it has contract tests.
-
-## Ordinary terminals with `direnv`
-
-VS Code settings affect VS Code terminals only. For project-aware behavior in
-ordinary terminals, `direnv` is the cleanest optional integration.
-
-Proposed `.envrc`:
-
-```sh
-PATH_add .dugout/bin
-```
-
-The developer explicitly approves the file with:
-
-```sh
-direnv allow
-```
-
-Verify after entering the project:
+From a newly created Hearts terminal:
 
 ```sh
 command -v php
+command -v composer
+command -v node
+command -v npm
+command -v npx
 ```
 
-When leaving the directory, `direnv` restores the previous `PATH`.
-
-The `.envrc` should alter only command lookup. It should not contain registry
-tokens, application secrets, or duplicated runner logic.
-
-## Ordinary terminals without `direnv`
-
-Alternatives:
-
-```sh
-export PATH="$PWD/.dugout/bin:$PATH"
-```
-
-or a future helper:
-
-```sh
-eval "$(dug env)"
-```
-
-The `dug env` output must be carefully specified and safe to evaluate. Until
-then, an explicit `PATH` export is more transparent.
-
-Another option is:
-
-```sh
-dug shell
-```
-
-That command could start a child shell with the project shim directory
-prepended. It must not modify global shell startup files automatically.
-
-## Make
-
-Once `.dugout/bin` is first in `PATH`, ordinary recipes resolve the shims:
-
-```make
-.PHONY: php-version frontend-install
-
-php-version:
- php --version
-
-frontend-install:
- npm install
-```
-
-For reproducibility in CI or environments where shell activation is uncertain,
-Make may invoke the runner explicitly:
-
-```make
-php-version:
- dug tool php --version
-```
-
-A project should choose one style consistently. Explicit runner calls are
-clearer in automation; natural commands are nicer for developers.
-
-Make must not recursively invoke a host command by resetting `PATH`.
-
-Make targets used on a production server must use ordinary commands and must
-not invoke `dug` explicitly. Explicit `dug tool ...` recipes are limited to
-clearly development-only or CI-only targets.
-
-## Scripts and shebangs
-
-A script using:
+Expected paths end with:
 
 ```text
-#!/usr/bin/env php
+/dugout/bin/php
+/dugout/bin/composer
+/dugout/bin/node
+/dugout/bin/npm
+/dugout/bin/npx
 ```
 
-will resolve the PHP shim when the shim directory is first in `PATH`.
-
-However, the shim then mounts and runs the project inside a container. This is
-correct only when:
-
-- the script belongs to the configured workspace;
-- the runner can identify the workspace from the current directory;
-- the script path passed by `env` is meaningful through the workspace mount.
-
-This behavior needs an end-to-end contract test before Dugout promises support
-for containerized shebang execution.
-
-For project automation, the clearer initial form is:
+Then verify resolution and execution:
 
 ```sh
-php path/to/script.php
+dug list
+dug which php
+php --version
+composer --version
+node --version
+npm --version
+npx --version
 ```
 
-## Deployment and server behavior
+From a nested directory:
 
-Dugout is never installed or activated on the production server:
+```sh
+cd frontend
+node -e 'console.log(process.cwd())'
+```
 
+The printed path should be `/workspace/frontend`.
+
+## Interactive commands, scripts, and Make
+
+This mechanism uses real executable shims, not aliases. Consequently, it
+applies to:
+
+- commands typed at the prompt;
+- POSIX shell scripts launched from that terminal;
+- Make recipes;
+- subprocesses that inherit `PATH`;
+- package lifecycle scripts that invoke another shimmed command.
+
+Example shell script:
+
+```sh
+#!/bin/sh
+set -eu
+
+php scripts/check.php
+npm --prefix frontend run typecheck
+```
+
+Example Make recipe:
+
+<!-- markdownlint-disable MD010 -->
+
+```make
+.PHONY: versions
+versions:
+	php --version
+	node --version
+```
+
+<!-- markdownlint-enable MD010 -->
+
+Neither example mentions Dugout. On the development machine the workspace
+`PATH` intercepts the names. On production the server's normal `PATH` resolves
+its provisioned binaries.
+
+Avoid absolute host paths in arguments passed to a containerized tool. Prefer:
+
+```sh
+php scripts/check.php
+```
+
+over:
+
+```sh
+php /home/developer/Code/hearts/scripts/check.php
+```
+
+The project is mounted at `/workspace`, not at its host absolute path.
+
+## Production boundary
+
+Dugout is completely absent from production:
+
+```mermaid
+flowchart LR
+    script["Deployable script<br/>php script.php"]
+
+    subgraph local["Development machine"]
+        devPath["VS Code PATH"]
+        shim["dugout/bin/php"]
+        image["Dugout PHP image"]
+        devPath --> shim --> image
+    end
+
+    subgraph server["Production server"]
+        serverPath["Server PATH"]
+        serverPhp["Server-local PHP"]
+        serverPath --> serverPhp
+    end
+
+    script -->|"run locally"| devPath
+    script -->|"run on server"| serverPath
+```
+
+The production server has:
+
+- no Dugout checkout;
 - no `dug` runner;
+- no Dugout shims;
+- no Dugout `.env`;
 - no Dugout tool images;
-- no `.dugout/bin` entry in `PATH`;
 - no `moznet`;
-- no dependency on the Dugout repository or service plane.
+- no VS Code workspace environment.
 
-Deployable scripts use ordinary command names:
-
-```sh
-php script.php
-node script.js
-npm run production-task
-```
-
-The environment decides which executable satisfies the command:
-
-| Environment | Command resolution |
-| --- | --- |
-| Development workspace | Project shim, then Dugout tool container |
-| Optional Dugout-aware CI | Explicit CI-selected Dugout image or runner |
-| Production server | Server-local executable from the server's `PATH` |
-
-Scripts using `#!/usr/bin/env php` or `#!/usr/bin/env node` follow the same
-rule. Nothing in the script is rewritten during deployment.
-
-Deployment artifacts should exclude:
-
-```text
-.dugout/
-.vscode/
-*.code-workspace
-```
-
-Deployable scripts, Make targets, hooks, and service commands must never refer
-directly to:
-
-```text
-dug
-.dugout/bin/php
-.dugout/bin/node
-```
-
-Production provisioning is responsible for installing compatible server-local
-versions. Dugout version pins do not provision or override the server.
-
-Before release, the project must be tested with the Dugout shim directory
-removed from `PATH`. This proves that deployment behavior does not depend on
-development command interception.
-
-## VS Code tasks
-
-Tasks can call natural commands:
-
-```json
-{
-  "version": "2.0.0",
-  "tasks": [
-    {
-      "label": "PHP version",
-      "type": "process",
-      "command": "${workspaceFolder}/.dugout/bin/php",
-      "args": ["--version"],
-      "problemMatcher": []
-    }
-  ]
-}
-```
-
-Using a `process` task and a concrete shim path avoids an unnecessary shell and
-preserves argument boundaries.
-
-For task portability across environments, an explicit `dug` command is also
-acceptable.
-
-## Editor extensions are separate
-
-Changing terminal `PATH` does not guarantee every editor extension uses the
-shim. Extensions may:
-
-- read their own executable-path setting;
-- start a long-lived language server;
-- require host paths in diagnostics;
-- expect to inspect the executable filesystem;
-- bypass the terminal environment entirely.
-
-Examples of possible configurations:
-
-```json
-{
-  "php.validate.executablePath": "${workspaceFolder}/.dugout/bin/php"
-}
-```
-
-Whether a particular extension accepts a container shim must be tested. A
-one-shot `docker run` per validation request may be too slow, while a language
-server designed as a persistent process may not fit the ephemeral tool model.
-
-Recommended boundary:
-
-- command-line validation, builds, generation, and tests use Dugout tools;
-- editor language servers receive a separately tested integration;
-- no documentation claims an extension works merely because the terminal does.
-
-## Devcontainer integration
-
-A devcontainer is optional. If present:
-
-- it should expose the same `.dugout/bin` directory in `PATH`;
-- the `dug` runner must know whether it is talking to a host Docker daemon;
-- host bind-mount paths must remain meaningful to that daemon;
-- it must not create `moznet`;
-- it must not contain unique tool versions or scripts;
-- it should fail clearly if it cannot access required Dugout infrastructure.
-
-The extra host-path translation makes this more complex than direct host
-execution. Devcontainer support should follow, not define, the runner contract.
-
-## Workspace trust
-
-Project shims are executable repository content. Opening a repository and
-allowing its shim directory to precede system tools means typing `php` executes
-code supplied by that repository.
-
-That is intentional but must be visible:
-
-- review shims like any other executable code;
-- use VS Code Workspace Trust;
-- never enable Dugout shims automatically for an untrusted checkout;
-- keep shims minimal enough to audit at a glance;
-- verify generated shims before committing them.
-
-## Troubleshooting command resolution
-
-### Host PHP still runs
+Deployable scripts must therefore use ordinary command names. Do not put
+either form below in application scripts or production Make targets:
 
 ```sh
-type -a php
+dug tool php script.php
+../dugout/bin/php script.php
+```
+
+Hearts' deployment workflow uses an explicit source allowlist and does not
+copy `hearts.code-workspace`. The workspace file is inert editor
+configuration, not application runtime configuration.
+
+## Optional ordinary-terminal activation
+
+The current Hearts design intentionally limits automatic activation to VS
+Code. For a separate terminal, a developer can opt in for that shell:
+
+```sh
+export PATH="/home/mozrin/Code/dugout/bin:$PATH"
+```
+
+This should remain explicit. Dugout does not rewrite `.profile`, `.bashrc`,
+`.zshrc`, or system paths.
+
+## Editor extensions
+
+Terminal interception does not prove that a PHP, JavaScript, or language-server
+extension uses the same executable. Extensions may bypass terminal
+environment settings or require a persistent process.
+
+Treat each editor extension as a separate integration:
+
+- inspect whether it accepts a custom executable path;
+- point it at the appropriate `dugout/bin` shim only after testing;
+- verify diagnostics contain project-relative paths;
+- avoid claiming support based solely on terminal behavior.
+
+One-shot containers fit formatters, generators, tests, and builds well.
+Persistent language servers may need a different lifecycle.
+
+## Troubleshooting
+
+### A host tool still runs
+
+```sh
+command -v php
 printf '%s\n' "$PATH"
 ```
 
-Create a new terminal after changing workspace settings. Ensure
-`.dugout/bin/php` is executable.
+Open the `.code-workspace` file, not only the Hearts folder, then create a new
+integrated terminal. Confirm the sibling Dugout folder exists at
+`../dugout`.
 
-### Shim is found but `dug` is missing
+### The shim is selected but Docker fails
 
 ```sh
-command -v dug
 dug doctor
+docker info
 ```
 
-Install or update the runner using the Dugout installation procedure.
+Start Docker. If PHP reports that `moznet` is absent, start or repair Dugout's
+service plane; the runner deliberately does not create external networks.
 
-### Correct shim, wrong image version
+### The wrong version runs
 
 ```sh
+dug list
 dug which php
-sed -n '/^php /p' .dugout/tool-versions
-dug verify
+sed -n '1,120p' ../dugout/.env
 ```
 
-Regenerate the lock file if the manifest intentionally changed.
+Change the Dugout `.env`, rebuild or pull the selected image, and run
+`dug verify`.
 
-### Commands work in a terminal but not an extension
+### A command works at the prompt but not in an extension
 
-Configure and test the extension's executable setting separately. Terminal
-`PATH` behavior is not proof of extension integration.
+The extension probably does not inherit integrated-terminal settings. Configure
+and test its executable separately.
 
-## Source references
+### A production command cannot find PHP or Node.js
 
-- [VS Code variables reference](https://code.visualstudio.com/docs/reference/variables-reference)
-- [VS Code workspace settings](https://code.visualstudio.com/docs/configure/settings)
-- [VS Code terminal profiles](https://code.visualstudio.com/docs/terminal/profiles)
+That is a production-provisioning issue. Do not install Dugout on the server.
+Install or repair the required server-local runtime and its `PATH`.

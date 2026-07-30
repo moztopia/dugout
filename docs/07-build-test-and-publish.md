@@ -257,12 +257,12 @@ be a production runtime dependency.
 Maintain a deployment-artifact test that:
 
 1. creates the same artifact sent to the server;
-2. confirms `.dugout/`, `.vscode/`, and workspace files are absent when the
-   packaging model supports exclusions;
-3. removes `.dugout/bin` from `PATH`;
+2. confirms `.vscode/` and workspace files are absent when the packaging model
+   supports exclusions;
+3. removes `dugout/bin` from `PATH`;
 4. makes `dug` unavailable;
 5. scans deployable scripts, Make targets, hooks, and service definitions for
-   direct `dug` or `.dugout/bin` references;
+   direct `dug` or `dugout/bin` references;
 6. executes representative scripts using provisioned local tools;
 7. verifies no production Compose/network definition references `moznet`.
 

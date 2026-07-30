@@ -3,49 +3,87 @@
 Dugout is the local development platform shared by MozTopia projects. It has
 two complementary responsibilities:
 
-1. provide long-lived local infrastructure such as DNS, reverse proxying,
+1. provide long-lived infrastructure such as DNS, reverse proxying,
    administration, and the shared `moznet` Docker network;
-2. provide small, single-purpose tool images that projects can invoke as if
-   the tools were installed locally.
+2. provide small, single-purpose tool images that projects invoke through
+   ordinary command names.
 
-The tool-container design is documented here before it is implemented. Any
-path, command, image name, configuration file, or behavior described as
-**proposed** is a contract for the implementation—not a claim that it already
-exists.
+The initial tool plane is implemented for PHP, Composer, Node.js, npm, and
+npx. Future tools should follow the same image, runner, security, and
+documentation contracts.
 
-## Design goals
+## Current command model
 
-- Typing `php`, `composer`, `node`, `npm`, or `npx` in a project terminal
-  invokes the project-selected Dugout image instead of a host installation.
-- Every tool image has one public purpose and one predictable entrypoint.
-- Projects pin their own tool versions.
-- The same commands work in VS Code, ordinary terminals, scripts, Make
-  targets, and CI.
-- Files created by tools belong to the host user.
-- Commands preserve the caller's project-relative working directory.
-- Tool containers are ephemeral and publish no ports.
-- Access to `moznet`, credentials, host caches, devices, and the Docker socket
-  is explicit rather than automatic.
-- Project behavior does not depend on a devcontainer.
-- A devcontainer may consume the same commands as an optional editor
-  environment, but it does not become a second toolchain.
-- Production servers do not contain Dugout, the `dug` runner, Dugout shims,
-  Dugout tool images, or `moznet`.
-- Deployable project scripts use ordinary command names so the development
-  `PATH` selects Dugout shims and the server `PATH` selects server-local tools.
+```mermaid
+flowchart LR
+    terminal["VS Code integrated terminal"]
+    path["PATH begins with<br/>dugout/bin"]
+    shim["POSIX shim<br/>php / composer / node / npm / npx"]
+    runner["dug runner"]
+    config["Dugout .env<br/>machine defaults"]
+    image["One-command tool image"]
+    project["Current Git project<br/>mounted at /workspace"]
+
+    terminal --> path --> shim --> runner --> image
+    config --> runner
+    project --> runner
+    image --> project
+```
+
+The important ownership rule is that shims and machine defaults live in
+Dugout. An application project does not copy them. A VS Code multi-root
+workspace only places `dugout/bin` before the host's existing `PATH`.
+
+## Design guarantees
+
+- `php`, `composer`, `node`, `npm`, and `npx` resolve to Dugout shims in an
+  activated development terminal.
+- Shims are small POSIX `sh` programs, forward every argument unchanged, and
+  never fall back to host tools.
+- Every tool image has one public command and one entrypoint.
+- Machine defaults live in Dugout's ignored `.env`.
+- An optional project `.dugout/tool-versions` file can pin image tags without
+  copying shims.
+- The caller's Git root is mounted at `/workspace`; a nested working directory
+  is preserved.
+- Files created in the project use the caller's numeric UID and GID.
+- Containers are ephemeral, read-only except for declared mounts and `/tmp`,
+  drop capabilities, and never publish ports.
+- Network access is explicit per tool. `moznet` must already exist and is
+  never created by the runner.
+- Production servers contain no Dugout repository, runner, shims, images,
+  configuration, or `moznet`.
+- Deployable scripts use ordinary command names. Development `PATH` selects
+  Dugout; production `PATH` selects server-local tools.
 
 ## Documents
 
 | Document | Purpose |
 | --- | --- |
-| [Platform architecture](01-platform-architecture.md) | Dugout's service plane, tool plane, ownership boundaries, and execution flow |
-| [Tool image contract](02-tool-image-contract.md) | Requirements every single-purpose image must satisfy |
-| [Runner and command shims](03-runner-and-command-shims.md) | How a typed command becomes an ephemeral container invocation |
-| [Project and workspace integration](04-project-and-workspace-integration.md) | Project files, VS Code settings, `direnv`, tasks, and editor limitations |
-| [Initial tool catalog](05-tool-catalog.md) | Recommended tools, policies, priorities, and runtime compatibility concerns |
-| [Security and networking](06-security-and-networking.md) | Least privilege, `moznet`, secrets, mounts, caches, and Docker access |
-| [Build, test, and publish](07-build-test-and-publish.md) | Repository layout, image versioning, CI, contract tests, and releases |
-| [Rollout and operations](08-rollout-and-operations.md) | Phased delivery, project adoption, upgrades, troubleshooting, and rollback |
+| [Platform architecture](01-platform-architecture.md) | Service plane, tool plane, ownership boundaries, and production separation |
+| [Tool image contract](02-tool-image-contract.md) | Requirements for each single-purpose image |
+| [Runner and command shims](03-runner-and-command-shims.md) | Exact command-resolution and container behavior |
+| [Project and workspace integration](04-project-and-workspace-integration.md) | The one-file Hearts integration and script behavior |
+| [Initial tool catalog](05-tool-catalog.md) | Tool policies, priorities, and compatibility concerns |
+| [Security and networking](06-security-and-networking.md) | Least privilege, `moznet`, mounts, caches, and Docker access |
+| [Build, test, and publish](07-build-test-and-publish.md) | Image builds, contract tests, CI, and releases |
+| [Rollout and operations](08-rollout-and-operations.md) | Adoption, upgrades, troubleshooting, and rollback |
+| [Configuration reference](09-configuration-reference.md) | Every supported `.env` key and its precedence |
+| [New-project quick start](10-new-project-quickstart.md) | Safe, manual adoption for another project workspace |
+
+## Implementation status
+
+| Capability | Status |
+| --- | --- |
+| PHP and Composer images | Implemented |
+| Node.js, npm, and npx images | Implemented |
+| Shared POSIX runner and command shims | Implemented |
+| Root `.env` configuration | Implemented |
+| Optional per-project version manifest | Implemented |
+| Runner and image contract tests | Implemented |
+| Digest lock file and registry publication automation | Future |
+| Native Windows wrappers | Future |
+| Persistent editor language-server integration | Tool-specific future work |
 
 ## Vocabulary
 
@@ -54,59 +92,35 @@ exists.
   such as the proxy, Portainer, Adminer, or Pi-hole.
 
 **Tool image**
-: An immutable image whose public interface is one command, such as `php`,
-  `composer`, or `shellcheck`.
+: An immutable image whose public interface is one command.
 
 **Tool container**
-: A short-lived container created from a tool image for one invocation. It is
-  removed when the command exits.
+: A short-lived container created for one invocation and removed at exit.
 
 **Runner**
-: The small host-side program that turns a tool name and arguments into a safe,
-  consistent `docker run` invocation.
+: `dug`, the POSIX host-side program that builds a constrained `docker run`
+  argument vector.
 
 **Shim**
-: A project-local executable named after a tool. It delegates to the runner so
-  normal shell command lookup selects the containerized tool.
+: A POSIX executable in `dugout/bin` named after its tool. It delegates to the
+  runner so normal `PATH` lookup selects the container.
+
+**Machine configuration**
+: Dugout's ignored root `.env`, initialized from `.env.example`.
 
 **Tool manifest**
-: A committed project file that selects tool versions and runtime policies.
-
-**Tool lock**
-: An optional committed file that resolves human-friendly image tags to
-  immutable image digests.
+: An optional application-project file at `.dugout/tool-versions` that
+  overrides machine-default image tags.
 
 ## Non-goals
 
-The tool plane is not intended to:
+Dugout does not:
 
-- replace project application containers;
+- replace application containers;
 - run package managers as permanent services;
-- expose development ports;
+- publish tool-container ports;
 - automatically join every tool to `moznet`;
-- silently mount the Docker socket;
-- mount the user's entire home directory;
-- hide incompatible language runtimes;
-- make every possible tool image tiny at the cost of correctness;
-- require VS Code or any particular editor.
-- install or activate Dugout on production servers.
-- make a deployed application depend on the `dug` runner, project shims,
-  Dugout images, or `moznet`.
-
-## Decision summary
-
-The proposed direction is:
-
-- Dugout owns local infrastructure and the `moznet` lifecycle.
-- Project Compose overrides consume `moznet` as an external network.
-- Tool images are independently versioned and independently runnable.
-- A shared `dug` runner owns container mechanics.
-- Projects commit small shims and version selections.
-- Workspace settings only prepend the project's shim directory to `PATH`.
-- Pure tools run without `moznet`; service-aware tools join it only when
-  requested or allowed by policy.
-- Images never publish ports.
-- Image size matters, but runtime compatibility and predictable behavior matter
-  more than winning an artificial size contest.
-- Dugout ends at the development/optional-CI boundary. Production provisioning
-  independently owns every server-side runtime and command.
+- mount the Docker socket or the user's home directory;
+- silently fall back to host language installations;
+- require VS Code or a devcontainer;
+- install or activate anything on production servers.

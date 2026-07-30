@@ -1,0 +1,12 @@
+.git
+.env
+data
+docs
+nginx-proxy-manager
+adminer
+pihole
+portainer
+tests
+*.log
+*.sqlite*
+*.txt

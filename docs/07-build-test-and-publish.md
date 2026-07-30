@@ -29,6 +29,8 @@ dugout/
 │   ├── test-images.sh
 │   └── test-runner.sh
 ├── tools/
+│   ├── dart/
+│   ├── flutter/
 │   ├── node/
 │   └── php/
 └── docker-compose.yaml
@@ -94,6 +96,8 @@ make build-composer
 make build-node
 make build-npm
 make build-npx
+make build-dart
+make build-flutter
 make test
 ```
 
@@ -102,6 +106,8 @@ Version overrides use Make variables:
 ```sh
 PHP_VERSION=8.5 make build-php
 NODE_VERSION=24 NPM_VERSION=11 make build-node build-npm build-npx
+DART_VERSION=3.12.2 make build-dart
+FLUTTER_VERSION=3.44.2 make build-flutter
 ```
 
 Commands must produce the exact image reference they built and must not
@@ -238,6 +244,8 @@ composer --version
 node --version
 npm --version
 npx --version
+dart --version
+flutter --version
 ```
 
 They should also prove:

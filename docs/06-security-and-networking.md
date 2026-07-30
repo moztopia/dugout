@@ -131,6 +131,8 @@ Use normal Docker egress for:
 
 - Composer installs;
 - npm installs;
+- Dart and Flutter package resolution;
+- Flutter Android dependency resolution and builds;
 - registry clients;
 - documentation link checks;
 - vulnerability database updates.

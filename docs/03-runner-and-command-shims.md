@@ -24,7 +24,9 @@ dugout/
 │   ├── composer
 │   ├── node
 │   ├── npm
-│   └── npx
+│   ├── npx
+│   ├── dart
+│   └── flutter
 └── share/dugout/catalog # trusted tool policy
 ```
 
@@ -126,6 +128,8 @@ Without a project manifest, tags derive from the machine configuration:
 | `node` | `moztopia/dugout-node:22` |
 | `npm` | `moztopia/dugout-npm:10-node22` |
 | `npx` | `moztopia/dugout-npx:10-node22` |
+| `dart` | `moztopia/dugout-dart:3.12.2` |
+| `flutter` | `moztopia/dugout-flutter:3.44.2` |
 
 The prefix and component versions are configurable. Composer's tag includes
 the selected PHP line; npm and npx tags include the Node.js line. This prevents
@@ -141,6 +145,8 @@ composer 2-php84
 node 22
 npm 10-node22
 npx 10-node22
+dart 3.12.2
+flutter 3.44.2
 ```
 
 The manifest contains image tags, not shell code. Blank lines and comments are
@@ -171,6 +177,14 @@ docker run \
   "$@"
 ```
 
+Flutter is the sole root-filesystem exception: the SDK updates internal
+metadata during normal commands. Its container layer is writable but remains
+unprivileged, capability-free, unpublished, and disposable under `--rm`.
+After a Flutter command, the runner restores host-readable SDK paths in the
+generated `.dart_tool/package_config.json`. Dart and Flutter caches are
+mounted at the same absolute path on the host and in the container so editor
+analysis does not inherit inaccessible `/cache` paths.
+
 The implementation does not build a shell string and does not use `eval`.
 When both input and output are terminals it adds `--tty`. Non-interactive
 calls keep stdin attached without forcing terminal formatting.
@@ -181,9 +195,11 @@ calls keep stdin attached without forcing terminal formatting.
 - The nested working directory is preserved.
 - Writable tools see a writable project mount.
 - The container uses the caller's numeric UID and GID.
-- The image root filesystem is read-only.
+- The image root filesystem is read-only except for Flutter's disposable
+  SDK-metadata layer.
 - `/tmp` is a disposable tmpfs and provides a writable temporary `HOME`.
-- Composer and npm receive only their explicit Dugout cache directory.
+- Composer, npm/npx, Dart, and Flutter receive only their explicit Dugout
+  cache directories.
 - The host home directory and Docker socket are not mounted.
 
 These rules prevent root-owned generated files while containing writes to the
@@ -212,6 +228,8 @@ The current defaults are:
 | Node.js | `none` |
 | npm | `bridge` |
 | npx | `bridge` |
+| Dart | `bridge` |
+| Flutter | `bridge` |
 
 Any command can receive a one-call override:
 

@@ -1,6 +1,6 @@
 # Dugout documentation
 
-Dugout is the local development platform shared by MozTopia projects. It has
+Dugout is the local development platform shared by Moztopia projects. It has
 two complementary responsibilities:
 
 1. provide long-lived infrastructure such as DNS, reverse proxying,
@@ -8,8 +8,8 @@ two complementary responsibilities:
 2. provide small, single-purpose tool images that projects invoke through
    ordinary command names.
 
-The initial tool plane is implemented for PHP, Composer, Node.js, npm, and
-npx. Future tools should follow the same image, runner, security, and
+The tool plane is implemented for PHP, Composer, Node.js, npm, npx, Dart, and
+Flutter. Future tools should follow the same image, runner, security, and
 documentation contracts.
 
 Current release: **1.1.0 — Double**. See the
@@ -21,7 +21,7 @@ Current release: **1.1.0 — Double**. See the
 flowchart LR
     terminal["VS Code integrated terminal"]
     path["PATH begins with<br/>dugout/bin"]
-    shim["POSIX shim<br/>php / composer / node / npm / npx"]
+    shim["POSIX shim<br/>php / composer / node / npm / npx / dart / flutter"]
     runner["dug runner"]
     config["Dugout .env<br/>machine defaults"]
     image["One-command tool image"]
@@ -39,8 +39,8 @@ workspace only places `dugout/bin` before the host's existing `PATH`.
 
 ## Design guarantees
 
-- `php`, `composer`, `node`, `npm`, and `npx` resolve to Dugout shims in an
-  activated development terminal.
+- `php`, `composer`, `node`, `npm`, `npx`, `dart`, and `flutter` resolve to
+  Dugout shims in an activated development terminal.
 - Shims are small POSIX `sh` programs, forward every argument unchanged, and
   never fall back to host tools.
 - Every tool image has one public command and one entrypoint.
@@ -50,8 +50,9 @@ workspace only places `dugout/bin` before the host's existing `PATH`.
 - The caller's Git root is mounted at `/workspace`; a nested working directory
   is preserved.
 - Files created in the project use the caller's numeric UID and GID.
-- Containers are ephemeral, read-only except for declared mounts and `/tmp`,
-  drop capabilities, and never publish ports.
+- Containers are ephemeral, drop capabilities, and never publish ports.
+  Their roots are read-only except for Flutter's disposable container layer,
+  which its SDK requires for internal metadata.
 - Network access is explicit per tool. Dugout Compose creates `moznet`; the
   runner only uses it when policy permits and never creates it.
 - Production servers contain no Dugout repository, runner, shims, images,
@@ -80,6 +81,7 @@ workspace only places `dugout/bin` before the host's existing `PATH`.
 | --- | --- |
 | PHP and Composer images | Implemented |
 | Node.js, npm, and npx images | Implemented |
+| Dart and Flutter images | Implemented |
 | Shared POSIX runner and command shims | Implemented |
 | Root `.env` configuration | Implemented |
 | Optional per-project version manifest | Implemented |

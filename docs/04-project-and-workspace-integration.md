@@ -87,6 +87,8 @@ command -v composer
 command -v node
 command -v npm
 command -v npx
+command -v dart
+command -v flutter
 ```
 
 Expected paths end with:
@@ -97,6 +99,8 @@ Expected paths end with:
 /dugout/bin/node
 /dugout/bin/npm
 /dugout/bin/npx
+/dugout/bin/dart
+/dugout/bin/flutter
 ```
 
 Then verify resolution and execution:
@@ -109,6 +113,8 @@ composer --version
 node --version
 npm --version
 npx --version
+dart --version
+flutter --version
 ```
 
 From a nested directory:

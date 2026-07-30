@@ -12,7 +12,7 @@ flowchart LR
     prototype["Prototype runner"]
     smallTools["Prove with jq, ShellCheck, and shfmt"]
     project["Adopt in one project"]
-    languages["Add PHP and Node families"]
+    languages["Add PHP, Node, Dart, and Flutter families"]
     lock["Add digest locking"]
     publish["Automate build and publication"]
     expand["Expand catalog from real demand"]
@@ -33,7 +33,7 @@ Resolve these choices before implementation:
 - manifest and lock schemas;
 - default network policies;
 - cache backend and naming;
-- initial PHP and Node runtime families;
+- initial PHP, Node, Dart, and Flutter runtime families;
 - whether exact version tags are immutable;
 - signing and SBOM expectations.
 
@@ -163,6 +163,14 @@ Acceptance:
 - correct ownership of `node_modules` and lock files;
 - npx uses the intended project and cache behavior;
 - non-interactive CI output remains clean.
+
+### Dart and Flutter acceptance
+
+Before locking and publication automation, the current implementation also
+adds pinned Dart and Flutter tool images. Acceptance includes pub-cache
+persistence, `dart analyze`/`dart test`, `flutter analyze`/`flutter test`,
+and command-line Android builds. The Flutter image has no Android Studio,
+emulator, USB access, or device privileges, and rejects `flutter run`.
 
 ## Phase 6: locking and upgrades
 
@@ -443,7 +451,7 @@ The system is ready for broad adoption when:
 - a new project can be initialized predictably;
 - ordinary commands select project tools in editor and shell environments;
 - host fallback is detectable and prohibited;
-- PHP/Composer and Node/npm runtime parity is documented;
+- PHP/Composer, Node/npm, Dart, and Flutter runtime parity is documented;
 - files have correct ownership;
 - cache cleanup is safe;
 - offline and locked execution are understood;

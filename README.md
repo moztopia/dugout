@@ -2,9 +2,10 @@
 
 Current release: **1.1.0 — Double**
 
-Dugout is MozTopia's local development service plane and containerized command
+Dugout is Moztopia's local development service plane and containerized command
 toolbox. It owns the shared local services, the globally named `moznet` Docker
-network, and small command images for PHP, Composer, Node.js, npm, and npx.
+network, and command images for PHP, Composer, Node.js, npm, npx, Dart, and
+Flutter.
 
 ## Quick start
 
@@ -83,6 +84,8 @@ php --version
 composer --version
 node --version
 npm --version
+dart --version
+flutter --version
 ```
 
 Expected release output:
@@ -104,6 +107,13 @@ make test              # run repository validation
 Projects join `moznet` as an external network; Dugout alone creates and owns
 it. Persistent application state is held in named Docker volumes. Ignored
 bind mounts and private backups are organized under [`services/`](services/).
+
+The Flutter image includes the Android command-line SDK needed for package
+resolution, analysis, tests, and Android builds, including Flutter's pinned
+NDK and CMake. It does not include or require Android Studio, an emulator, USB
+access, or device privileges.
+`flutter run` is intentionally rejected by the shim; use a host Flutter
+installation for interactive emulator or physical-device sessions.
 
 ## Documentation
 

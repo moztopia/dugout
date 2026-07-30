@@ -36,6 +36,8 @@ and project-relative paths without runtime-family complexity.
 | Node.js | `node` | `none` | Optional | Version, architecture, libc |
 | npm | `npm` | `internet` | Required | Must match Node runtime family |
 | npx | `npx` | `internet` | Required | Must match Node/npm family |
+| Dart | `dart` | `internet` | Required | Project SDK constraint |
+| Flutter | `flutter` | `internet` | Required | Pinned Android toolchain |
 
 ### PHP variants
 
@@ -72,6 +74,14 @@ duplicated maintenance while retaining one obvious command per image.
 
 Do not use an Alpine npm image to populate `node_modules` for a Debian runtime
 without tests proving native-module compatibility.
+
+### Dart and Flutter
+
+Dart 3.12.2 and Flutter 3.44.2 are implemented as separate public tools.
+Flutter includes the command-line Android SDK for dependency resolution,
+analysis, tests, and builds. Android Studio, emulators, USB devices, and
+privileged container access are not part of the image. `flutter run` is
+rejected with a clear message; interactive device work stays on the host.
 
 ## Priority 2: universal development utilities
 
@@ -167,8 +177,8 @@ mounting the host Docker socket.
 
 | Tool | Notes |
 | --- | --- |
-| Dart | Moderate SDK image; cache package downloads |
-| Flutter | Large SDK, platform dependencies, and caches; publish deliberately |
+| Dart | Implemented pinned SDK image with a persistent pub cache |
+| Flutter | Implemented heavyweight SDK image with pub and Gradle caches |
 | Python | Small runtime possible, but native wheels affect base selection |
 | `uv` | Useful fast Python environment/package tool |
 | Java | Runtime family and JDK distribution must be explicit |
@@ -222,6 +232,8 @@ different behavior from CI.
 - `node`;
 - `npm`;
 - `npx`.
+- `dart`;
+- `flutter`.
 
 ### Platform-aware release
 

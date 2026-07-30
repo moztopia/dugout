@@ -11,6 +11,10 @@ set -- \
   bin/node \
   bin/npm \
   bin/npx \
+  bin/dart \
+  bin/flutter \
+  tools/flutter/flutter-entrypoint \
+  tools/flutter/update-engine-version \
   tests/check-shell.sh \
   tests/test-images.sh \
   tests/test-runner.sh

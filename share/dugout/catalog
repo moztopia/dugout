@@ -4,3 +4,5 @@ composer|bridge|writable|composer
 node|none|writable|
 npm|bridge|writable|npm
 npx|bridge|writable|npm
+dart|bridge|writable|dart
+flutter|bridge|writable|flutter

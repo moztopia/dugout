@@ -120,6 +120,8 @@ ghcr.io/moztopia/dugout
 | `DUGOUT_COMPOSER_VERSION` | `2` | Composer tag |
 | `DUGOUT_NODE_VERSION` | `22` | Node tag and npm/npx runtime suffix |
 | `DUGOUT_NPM_VERSION` | `10` | npm and npx tags |
+| `DUGOUT_DART_VERSION` | `3.12.2` | Dart tag |
+| `DUGOUT_FLUTTER_VERSION` | `3.44.2` | Flutter tag |
 
 Derived tags:
 
@@ -129,6 +131,8 @@ composer  2-php84
 node      22
 npm       10-node22
 npx       10-node22
+dart      3.12.2
+flutter   3.44.2
 ```
 
 After changing a version, build or pull the matching image:
@@ -147,6 +151,8 @@ make build-tools
 | `DUGOUT_NODE_NETWORK` | `none` |
 | `DUGOUT_NPM_NETWORK` | `bridge` |
 | `DUGOUT_NPX_NETWORK` | `bridge` |
+| `DUGOUT_DART_NETWORK` | `bridge` |
+| `DUGOUT_FLUTTER_NETWORK` | `bridge` |
 
 Allowed values:
 
@@ -179,7 +185,8 @@ credentials and must not be committed.
 
 ### `DUGOUT_CACHE_HOME`
 
-Overrides the host cache base for Composer, npm, and npx. Default:
+Overrides the host cache base for Composer, npm/npx, Dart, and Flutter.
+Default:
 
 ```text
 ${XDG_CACHE_HOME:-$HOME/.cache}/dugout
@@ -190,6 +197,8 @@ The runner creates version-separated children such as:
 ```text
 composer-2-php84
 npm-10-node22
+dart-3.12.2
+flutter-3.44.2
 ```
 
 Use an absolute path. This directory is mounted only for tools whose catalog
@@ -220,6 +229,20 @@ configuration. The current directory must still be inside the selected root.
 Use this sparingly. Git-root discovery is safer for normal project work. A
 machine-wide value can accidentally mount the wrong amount of source into tool
 containers.
+
+### `DUGOUT_FLUTTER_EDITOR_SDK`
+
+Selects the host Flutter SDK used by editor analysis after containerized
+Flutter commands generate `.dart_tool/package_config.json`. The runner
+normally discovers a real Flutter SDK later in `PATH`, skipping Dugout's
+shim. Set this absolute path when automatic discovery is ambiguous:
+
+```text
+DUGOUT_FLUTTER_EDITOR_SDK=/home/developer/flutter
+```
+
+This host SDK is for editor metadata and optional device execution. Android
+command-line builds continue using Dugout's containerized SDK.
 
 ### `DUGOUT_CATALOG`
 
@@ -257,7 +280,8 @@ Running:
 
 installs:
 
-- `dug`, `php`, `composer`, `node`, `npm`, and `npx` under `~/.local/bin`;
+- `dug`, `php`, `composer`, `node`, `npm`, `npx`, `dart`, and `flutter`
+  under `~/.local/bin`;
 - the catalog under `~/.local/share/dugout`;
 - `.env.example` and, if absent, `.env` under
   `~/.config/dugout`.

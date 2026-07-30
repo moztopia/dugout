@@ -1,0 +1,7 @@
+#!/bin/sh
+set -eu
+
+# Dugout builds and precaches one pinned Flutter SDK. At runtime the SDK is
+# intentionally read-only, so its already-populated engine stamp must not be
+# rewritten on every invocation.
+exit 0

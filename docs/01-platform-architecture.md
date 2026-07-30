@@ -2,8 +2,8 @@
 
 ## Status
 
-The Dugout service plane exists today. The initial tool plane is implemented
-for PHP, Composer, Node.js, npm, and npx.
+The Dugout service plane exists today. The tool plane is implemented for PHP,
+Composer, Node.js, npm, npx, Dart, and Flutter.
 
 ## Existing service plane
 
@@ -154,7 +154,7 @@ lifecycle is deliberately different:
 | `moznet` | Normal for shared services | Explicit and exceptional |
 | Workspace mount | Usually none | Project root |
 | Host UID/GID | Service-specific | Required for writable project files |
-| Version selection | Dugout Compose | Dugout `.env`; optional project manifest |
+| Version selection | Dugout Compose | Dugout `.env` or project manifest |
 | State | Named volumes and config | Project files and explicit caches only |
 
 ## Why the tool plane is not a devcontainer
@@ -167,7 +167,7 @@ That distinction provides several benefits:
 - the host editor remains usable;
 - commands do not depend on VS Code;
 - CI can execute the same images;
-- PHP and Node versions can be selected per project;
+- PHP, Node, Dart, and Flutter versions can be selected per project;
 - a failing tool container does not invalidate the whole workspace;
 - tool upgrades are independent;
 - no permanent workspace container is required;

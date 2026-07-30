@@ -1,0 +1,14 @@
+#!/bin/sh
+set -eu
+
+if [ "${1:-}" = "run" ]; then
+  printf '%s\n' \
+    "flutter run is unavailable in Dugout; use a host SDK for device execution." >&2
+  exit 64
+fi
+
+# The SDK and its artifacts are fully prepared in the image. Avoid attempting
+# to mutate Flutter's installation inside Dugout's read-only runtime.
+export FLUTTER_ALREADY_LOCKED=true
+
+exec /opt/flutter/bin/flutter "$@"

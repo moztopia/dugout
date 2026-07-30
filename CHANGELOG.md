@@ -13,6 +13,9 @@ the short-lived command-tool plane.
 - `make services-up`, `services-stop`, `services-restart`, and
   `services-status` lifecycle commands;
 - `dug version`, reporting `dug 1.1.0 (Double)`;
+- pinned Dart 3.12.2 and Flutter 3.44.2 command images and shims;
+- command-line Android SDK support for Flutter analysis, tests, and builds,
+  without Android Studio or device privileges;
 - a documented `services/` layout for runtime files and private backups.
 
 ### Changed

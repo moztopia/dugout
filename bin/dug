@@ -103,6 +103,9 @@ set_config_default() {
       [ -n "${DUGOUT_MINIO_ROOT_PASSWORD+x}" ] ||
         DUGOUT_MINIO_ROOT_PASSWORD="${config_value}"
       ;;
+    DUGOUT_NPM_API_URL | DUGOUT_NPM_EMAIL | DUGOUT_NPM_PASSWORD)
+      # Service-seeding configuration is accepted but unused by the tool runner.
+      ;;
     DUGOUT_CACHE_HOME)
       [ -n "${DUGOUT_CACHE_HOME+x}" ] ||
         DUGOUT_CACHE_HOME="${config_value}"

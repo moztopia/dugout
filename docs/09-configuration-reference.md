@@ -177,9 +177,13 @@ containers.
 | --- | --- | --- |
 | `DUGOUT_MINIO_ROOT_USER` | `minioadmin` | MinIO development administrator |
 | `DUGOUT_MINIO_ROOT_PASSWORD` | `minioadmin` | MinIO development password |
+| `DUGOUT_NPM_API_URL` | `http://localhost:81` | Nginx Proxy Manager API used by `make services-seed` |
+| `DUGOUT_NPM_EMAIL` | None | Nginx Proxy Manager administrator email |
+| `DUGOUT_NPM_PASSWORD` | None | Nginx Proxy Manager administrator password |
 
-Change both defaults on each development machine. They are local development
-credentials and must not be committed.
+Change the MinIO defaults on each development machine. Complete Nginx Proxy
+Manager's first-run admin setup before setting its email and password. These
+are local development credentials and must not be committed.
 
 ## Advanced settings
 

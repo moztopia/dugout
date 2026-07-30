@@ -9,95 +9,15 @@ Flutter.
 
 ## Quick start
 
-### Prerequisites
-
-- Docker Engine with the Compose plugin;
-- Git;
-- a POSIX shell (`sh`);
-- `make`.
-
-### 1. Configure Dugout
-
-```sh
-git clone https://github.com/mozrin/dugout.git
-cd dugout
-cp .env.example .env
-```
-
-Open `.env` and replace the default MinIO credentials:
-
-```dotenv
-DUGOUT_MINIO_ROOT_USER=your-local-admin
-DUGOUT_MINIO_ROOT_PASSWORD=your-long-local-password
-```
-
-The local `.env` is ignored by Git.
-
-### 2. Start the shared services
-
-```sh
-make services-up
-```
-
-This creates the shared `moznet` network automatically and starts:
-
-- Nginx Proxy Manager;
-- Portainer;
-- Adminer;
-- Mailpit;
-- Dozzle;
-- MinIO.
-
-Only host ports `80` and `81` are published. Open Nginx Proxy Manager at
-[http://localhost:81](http://localhost:81), then route local HTTP hostnames to
-the internal services:
-
-| Local hostname | Forward host | Forward port |
-| --- | --- | ---: |
-| `proxy.localhost` | `do_proxy` | 81 |
-| `portainer.localhost` | `do_portainer` | 9000 |
-| `adminer.localhost` | `do_adminer` | 8080 |
-| `mailpit.localhost` | `do_mailpit` | 8025 |
-| `dozzle.localhost` | `do_dozzle` | 8080 |
-| `minio.localhost` | `do_minio` | 9001 |
-| `s3.localhost` | `do_minio` | 9000 |
-
-Use HTTP, leave SSL disabled, and enable WebSocket support for Dozzle and
-MinIO. Application containers on `moznet` can use `mailpit:1025` for SMTP and
-`http://minio:9000` for S3-compatible storage.
-
-### 3. Build and install the command tools
-
-```sh
-make build-tools
-make install
-export PATH="$HOME/.local/bin:$PATH"
-```
-
-Persist the `PATH` line in your shell profile if desired. Verify the complete
-installation:
-
-```sh
-dug version
-dug doctor
-php --version
-composer --version
-node --version
-npm --version
-dart --version
-flutter --version
-```
-
-Expected release output:
-
-```text
-dug 1.1.0 (Double)
-```
+Follow the [Dugout quick-start guide](QUICK-START.md) to configure the
+development environment, start the shared services, and install the command
+tools.
 
 ## Everyday commands
 
 ```sh
 make services-up       # create moznet if needed and start services
+make services-seed     # create missing Nginx Proxy Manager hosts
 make services-stop     # stop services but retain moznet and data
 make services-restart  # restart the service containers
 make services-status   # show container status
@@ -117,6 +37,7 @@ installation for interactive emulator or physical-device sessions.
 
 ## Documentation
 
+- [Quick-start guide](QUICK-START.md)
 - [Documentation index](docs/README.md)
 - [New-project integration](docs/10-new-project-quickstart.md)
 - [Configuration reference](docs/09-configuration-reference.md)

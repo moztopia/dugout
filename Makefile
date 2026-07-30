@@ -27,7 +27,7 @@ NPX_IMAGE := $(IMAGE_PREFIX)-npx:$(NPM_VERSION)-node$(NODE_VERSION)
 DART_IMAGE := $(IMAGE_PREFIX)-dart:$(DART_VERSION)
 FLUTTER_IMAGE := $(IMAGE_PREFIX)-flutter:$(FLUTTER_VERSION)
 
-.PHONY: help install services-up services-stop services-restart services-status build-tools build-php build-composer build-node build-npm build-npx build-dart build-flutter test test-runner test-images lint
+.PHONY: help install services-up services-seed services-stop services-restart services-status build-tools build-php build-composer build-node build-npm build-npx build-dart build-flutter test test-runner test-images lint
 
 help:
 	@printf '%s\n' \
@@ -35,6 +35,7 @@ help:
 		'' \
 		'  make install          Install dug under ~/.local' \
 		'  make services-up      Create moznet and start shared services' \
+		'  make services-seed    Seed Nginx Proxy Manager proxy hosts' \
 		'  make services-stop    Stop shared services without removing moznet' \
 		'  make services-restart Restart running shared services' \
 		'  make services-status  Show shared service status' \
@@ -56,6 +57,9 @@ install:
 
 services-up:
 	docker compose up --detach
+
+services-seed:
+	./scripts/seed-proxy-hosts
 
 services-stop:
 	docker compose stop

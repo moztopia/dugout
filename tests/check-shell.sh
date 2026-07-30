@@ -13,6 +13,7 @@ set -- \
   bin/npx \
   bin/dart \
   bin/flutter \
+  scripts/seed-proxy-hosts \
   tools/flutter/flutter-entrypoint \
   tools/flutter/update-engine-version \
   tests/check-shell.sh \

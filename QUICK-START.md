@@ -25,10 +25,6 @@ DUGOUT_MINIO_ROOT_USER=your-local-admin
 DUGOUT_MINIO_ROOT_PASSWORD=your-long-local-password
 ```
 
-After starting Nginx Proxy Manager for the first time, complete its admin setup
-at [http://localhost:81](http://localhost:81), then add the resulting
-credentials to `.env`:
-
 ```dotenv
 DUGOUT_NPM_EMAIL=you@example.com
 DUGOUT_NPM_PASSWORD=your-npm-admin-password
@@ -49,6 +45,10 @@ Nginx Proxy Manager, Portainer, Adminer, Mailpit, Dozzle, and MinIO.
 
 Only host ports `80` and `81` are published. After creating the Nginx Proxy
 Manager account shown above, seed the standard proxy hosts:
+
+After starting Nginx Proxy Manager for the first time, complete its admin setup
+at [http://localhost:81](http://localhost:81), then add the resulting
+credentials to `.env`:
 
 ![alt text](image.png)
 

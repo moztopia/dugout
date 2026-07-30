@@ -274,7 +274,11 @@ Command-line Make variables override `.env` for that build. The runner still
 uses its effective `DUGOUT_*` configuration when selecting images, so keep a
 one-off build's tag aligned with the runner before invoking it.
 
-## Installation behavior
+## Optional installation behavior
+
+Building the command images does not require installation. Installation is
+only for users who want Dugout commands available in ordinary terminals
+outside an activated VS Code workspace.
 
 Running:
 
@@ -292,6 +296,10 @@ installs:
 
 `DUGOUT_INSTALL_PREFIX` can change the binary/share prefix. Existing installed
 `.env` configuration is never overwritten.
+
+Running `./bin/dug uninstall` (or `make uninstall`) removes the runner, command
+shims, and catalog from the same installation prefix. It preserves
+`~/.config/dugout`, including `.env`, and does not edit shell profiles.
 
 Hearts does not require installation because its workspace points directly at
 the sibling Dugout checkout.

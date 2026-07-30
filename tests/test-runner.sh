@@ -127,6 +127,26 @@ done
 "${TEST_DIR}/install/bin/dug" version |
   grep -Fqx "dug $(cat "${ROOT_DIR}/VERSION") (Double)"
 
+DUGOUT_INSTALL_PREFIX="${TEST_DIR}/install" \
+  XDG_CONFIG_HOME="${TEST_DIR}/install-config" \
+  "${ROOT_DIR}/bin/dug" uninstall >/dev/null
+
+for uninstalled_file in \
+  bin/dug \
+  bin/php \
+  bin/composer \
+  bin/node \
+  bin/npm \
+  bin/npx \
+  bin/dart \
+  bin/flutter \
+  share/dugout/catalog; do
+  [ ! -e "${TEST_DIR}/install/${uninstalled_file}" ]
+done
+
+[ -f "${TEST_DIR}/install-config/dugout/.env.example" ]
+[ -f "${TEST_DIR}/install-config/dugout/.env" ]
+
 cat > "${TEST_DIR}/bad.env" <<'EOF'
 DUGOUT_UNKNOWN_SETTING=value
 EOF

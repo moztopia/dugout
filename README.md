@@ -10,8 +10,9 @@ Flutter.
 ## Quick start
 
 Follow the [Dugout quick-start guide](QUICK-START.md) to configure the
-development environment, start the shared services, and install the command
-tools.
+development environment, start the shared services, and build the command
+tools. Installing the command shims for use outside activated VS Code
+workspaces—and adding `~/.local/bin` to the workstation `PATH`—is optional.
 
 ## Everyday commands
 

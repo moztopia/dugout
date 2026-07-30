@@ -73,17 +73,60 @@ The seed uses HTTP with SSL disabled and enables WebSocket support for Dozzle
 and MinIO. Application containers on `moznet` can use `mailpit:1025` for SMTP
 and `http://minio:9000` for S3-compatible storage.
 
-## 3. Build and install the command tools
+## 3. Build the command tools (required)
 
 ```sh
 make build-tools
+```
+
+This is the only required command-tool setup step. Do not run `make install`
+or change the workstation's `PATH` unless you explicitly want the optional
+ordinary-terminal integration described below.
+
+Projects configured with Dugout add this checkout's `bin` directory to
+`PATH` only in new VS Code integrated terminals. In those terminals, commands
+such as `php`, `composer`, and `node` use the Dugout containers. Terminals
+outside VS Code keep using the workstation's existing tool versions.
+
+Continue with the
+[new-project integration guide](docs/10-new-project-quickstart.md) to activate
+the tools for a project.
+
+### Optional workstation integration
+
+Both steps in this subsection are optional. Run `make install` only if you
+want Dugout's commands available outside an activated VS Code workspace:
+
+```sh
 make install
+```
+
+If `~/.local/bin` is not already in the current terminal's `PATH`, it can also
+be enabled temporarily:
+
+```sh
 export PATH="$HOME/.local/bin:$PATH"
 ```
 
-Persist the `PATH` line in your shell profile if desired.
+Installation places the command shims under `~/.local/bin`. Adding that
+directory at the front of `PATH` can cause Dugout's `php`, `node`, and other
+shims to take precedence over versions installed directly on the workstation.
+Persist the `PATH` line in your shell profile only if that is the behavior you
+want.
 
-## 4. Verify the installation
+To remove the installed commands and catalog later:
+
+```sh
+make uninstall
+```
+
+This preserves the user's Dugout configuration under `~/.config/dugout`.
+Remove any `PATH` line added to a shell profile separately.
+
+## 4. Verify the tools
+
+Run these commands in a newly created terminal from an activated VS Code
+workspace, or in an ordinary terminal if you chose the optional installation:
 
 ```sh
 dug version
@@ -113,5 +156,5 @@ make services-status   # show container status
 make test              # run repository validation
 ```
 
-To use Dugout's command tools from another repository, continue with the
+To use Dugout's command tools from another repository, follow the
 [new-project integration guide](docs/10-new-project-quickstart.md).

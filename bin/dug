@@ -24,6 +24,7 @@ Usage:
   dug verify
   dug doctor
   dug install
+  dug uninstall
 
 The command shims and machine defaults live in Dugout. A project's optional
 .dugout/tool-versions file can override the machine's default image tags.
@@ -718,6 +719,23 @@ install_runner() {
   printf 'Installed configuration: %s\n' "${target_config}"
 }
 
+uninstall_runner() {
+  install_prefix="${DUGOUT_INSTALL_PREFIX:-${HOME}/.local}"
+  target_bin="${install_prefix}/bin"
+  target_share="${install_prefix}/share/dugout"
+  target_config="${XDG_CONFIG_HOME:-${HOME}/.config}/dugout"
+
+  for tool_name in dug php composer node npm npx dart flutter; do
+    rm -f "${target_bin}/${tool_name}"
+  done
+  rm -f "${target_share}/catalog"
+  rmdir "${target_share}" 2>/dev/null || true
+
+  printf 'Removed Dugout runner and shims from: %s\n' "${target_bin}"
+  printf 'Removed Dugout catalog from: %s\n' "${target_share}"
+  printf 'Preserved configuration: %s\n' "${target_config}"
+}
+
 load_config
 apply_config_defaults
 resolve_catalog
@@ -788,6 +806,10 @@ case "${command_name}" in
   install)
     [ "$#" -eq 0 ] || fail "install takes no arguments"
     install_runner
+    ;;
+  uninstall)
+    [ "$#" -eq 0 ] || fail "uninstall takes no arguments"
+    uninstall_runner
     ;;
   *)
     fail "unknown command: ${command_name}"

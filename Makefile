@@ -27,13 +27,14 @@ NPX_IMAGE := $(IMAGE_PREFIX)-npx:$(NPM_VERSION)-node$(NODE_VERSION)
 DART_IMAGE := $(IMAGE_PREFIX)-dart:$(DART_VERSION)
 FLUTTER_IMAGE := $(IMAGE_PREFIX)-flutter:$(FLUTTER_VERSION)
 
-.PHONY: help install services-up services-seed services-stop services-restart services-status build-tools build-php build-composer build-node build-npm build-npx build-dart build-flutter test test-runner test-images lint
+.PHONY: help install uninstall services-up services-seed services-stop services-restart services-status build-tools build-php build-composer build-node build-npm build-npx build-dart build-flutter test test-runner test-images lint
 
 help:
 	@printf '%s\n' \
 		'Dugout service and tool development' \
 		'' \
-		'  make install          Install dug under ~/.local' \
+		'  make install          Optionally install dug under ~/.local' \
+		'  make uninstall        Remove installed Dugout commands and catalog' \
 		'  make services-up      Create moznet and start shared services' \
 		'  make services-seed    Seed Nginx Proxy Manager proxy hosts' \
 		'  make services-stop    Stop shared services without removing moznet' \
@@ -54,6 +55,9 @@ help:
 
 install:
 	./bin/dug install
+
+uninstall:
+	./bin/dug uninstall
 
 services-up:
 	docker compose up --detach

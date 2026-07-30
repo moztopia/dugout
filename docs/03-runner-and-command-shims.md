@@ -248,6 +248,7 @@ dug list                        List configured tools and tags
 dug verify                      Check shims and local images
 dug doctor                      Check Docker, moznet, and configuration
 dug install                     Install runner, shims, catalog, and config
+dug uninstall                   Remove installed shims and catalog
 ```
 
 Examples:

@@ -9,18 +9,19 @@ Dugout ships two root configuration files:
 | `.env.example` | Committed | Complete template and configuration contract |
 | `.env` | Ignored | This development machine's active values |
 
-Initialize a checkout with:
+Initialize the checkout with:
 
 ```sh
-cp .env.example .env
+make install
 ```
 
-The repository already includes a local `.env` on the configured development
-machine. Because it is ignored, changing versions or paths does not create Git
-noise and cannot accidentally publish machine-specific values.
+The installer asks for the required local values and creates `.env` with
+private file permissions. Because it is ignored, changing versions or paths
+does not create Git noise or publish machine-specific values.
 
-No secrets are required for the initial tool set. Do not put registry tokens,
-application credentials, SSH keys, or production secrets in this file.
+The file contains local MinIO and Nginx Proxy Manager credentials. Do not put
+registry tokens, application credentials, SSH keys, or production secrets in
+it.
 
 ## Syntax and safety
 
@@ -57,14 +58,12 @@ flowchart TB
     env["Exported process environment<br/>highest priority"]
     selected["DUGOUT_CONFIG file"]
     source["Dugout root .env"]
-    installed["~/.config/dugout/.env"]
     defaults["Built-in defaults<br/>lowest priority"]
     effective["Effective runner configuration"]
 
     env --> effective
     selected --> effective
     source --> effective
-    installed --> effective
     defaults --> effective
 ```
 
@@ -72,9 +71,8 @@ More precisely:
 
 1. Existing exported `DUGOUT_*` variables win.
 2. If `DUGOUT_CONFIG` names a file, that file is read.
-3. Otherwise, a root `.env` beside the Dugout source checkout is read.
-4. An installed runner uses `${XDG_CONFIG_HOME:-$HOME/.config}/dugout/.env`.
-5. Missing values receive built-in defaults.
+3. Otherwise, the root `.env` beside the Dugout source checkout is selected.
+4. Missing values receive built-in defaults.
 
 `DUGOUT_CONFIG` itself is an environment selector and is not read from `.env`.
 
@@ -177,13 +175,13 @@ containers.
 | --- | --- | --- |
 | `DUGOUT_MINIO_ROOT_USER` | `minioadmin` | MinIO development administrator |
 | `DUGOUT_MINIO_ROOT_PASSWORD` | `minioadmin` | MinIO development password |
-| `DUGOUT_NPM_API_URL` | `http://localhost:81` | Nginx Proxy Manager API used by `make services-seed` |
+| `DUGOUT_NPM_API_URL` | `http://localhost:81` | Nginx Proxy Manager API used during installation |
 | `DUGOUT_NPM_EMAIL` | None | Nginx Proxy Manager administrator email |
 | `DUGOUT_NPM_PASSWORD` | None | Nginx Proxy Manager administrator password |
 
-Change the MinIO defaults on each development machine. Complete Nginx Proxy
-Manager's first-run admin setup before setting its email and password. These
-are local development credentials and must not be committed.
+`make install` asks for these local values, writes them to the ignored `.env`,
+creates the Nginx Proxy Manager administrator, and seeds the standard proxy
+hosts. These credentials must not be committed.
 
 ## Advanced settings
 
@@ -262,58 +260,34 @@ though its format is data-only.
 
 ## Build integration
 
-The root `Makefile` includes `.env` and maps the image/version settings to its
-build variables. Both forms below work:
+The installer builds the image versions selected for the release. Maintainers
+can use explicit Make variables for one-off development builds:
 
 ```sh
 make build-tools
 PHP_VERSION=8.5 make build-php
 ```
 
-Command-line Make variables override `.env` for that build. The runner still
-uses its effective `DUGOUT_*` configuration when selecting images, so keep a
-one-off build's tag aligned with the runner before invoking it.
+The runner uses its effective `DUGOUT_*` configuration when selecting images,
+so keep a one-off build's tag aligned with the runner before invoking it.
 
-## Optional installation behavior
+## Repository-local installation
 
-Building the command images does not require installation. Installation is
-only for users who want Dugout commands available in ordinary terminals
-outside an activated VS Code workspace.
+`make install` is required. It configures the checkout, builds every tool
+image, starts every service, initializes Nginx Proxy Manager, seeds proxy
+hosts, verifies the result, and records the Docker resources it owns.
 
-Running:
-
-```sh
-./bin/dug install
-```
-
-installs:
-
-- `dug`, `php`, `composer`, `node`, `npm`, `npx`, `dart`, and `flutter`
-  under `~/.local/bin`;
-- the catalog under `~/.local/share/dugout`;
-- `.env.example` and, if absent, `.env` under
-  `~/.config/dugout`.
-
-`DUGOUT_INSTALL_PREFIX` can change the binary/share prefix. Existing installed
-`.env` configuration is never overwritten.
-
-Running `./bin/dug uninstall` (or `make uninstall`) removes the runner, command
-shims, and catalog from the same installation prefix. It preserves
-`~/.config/dugout`, including `.env`, and does not edit shell profiles.
-
-Hearts does not require installation because its workspace points directly at
-the sibling Dugout checkout.
-
-Installation deliberately does not:
+The shims remain in the Dugout checkout and are enabled only by VS Code
+workspace settings. Installation deliberately does not:
 
 - search for application projects;
 - create or modify a `.code-workspace` file;
-- write `.vscode/settings.json`;
 - alter a shell profile or global `PATH`;
+- copy commands into `~/.local/bin`;
 - add `.dugout` files to a project.
 
-Workspace files can contain unrelated folders, settings, tasks, extensions,
-and comments. They must be merged by a person who can review that context.
+`make uninstall` reverses the installation after a destructive-data warning.
+It refuses to remove `moznet` while a non-Dugout container is attached.
 
 ## Change checklist
 

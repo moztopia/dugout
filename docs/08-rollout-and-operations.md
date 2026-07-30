@@ -223,7 +223,7 @@ Every proposal follows the checklist in
 ## Project initialization
 
 Project adoption is intentionally manual. Follow the
-[new-project quick start](10-new-project-quickstart.md).
+[optional workspace-inclusion guide](10-optional-workspace-inclusion.md).
 
 No `dug init` command rewrites editor or project files. A developer reviews
 the existing workspace, merges the named Dugout folder and terminal `PATH`

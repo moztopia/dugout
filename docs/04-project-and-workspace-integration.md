@@ -1,20 +1,24 @@
 # Project and workspace integration
 
-## Hearts integration contract
+## Optional application-workspace inclusion
 
-Hearts needs exactly one development integration file:
+No application needs Dugout to build, run, or deploy. A developer may
+occasionally include the Dugout checkout in an application's multi-root VS
+Code workspace for convenience.
+
+That optional integration uses one editor file:
 
 ```text
-hearts.code-workspace
+project.code-workspace
 ```
 
-It does not need copied shims, a runner, an `.env`, or a required
+The application does not need copied shims, a runner, an `.env`, or a required
 `.dugout/tool-versions` file. Those belong to Dugout.
 
 For another repository, follow the
-[new-project quick start](10-new-project-quickstart.md). Adding the workspace
-entry is always a manual review and edit. No Dugout installation command
-rewrites project or editor files.
+[optional workspace-inclusion guide](10-optional-workspace-inclusion.md).
+Adding the workspace entry is always a manual review and edit. No Dugout
+installation command rewrites project or editor files.
 
 ```mermaid
 flowchart LR
@@ -225,17 +229,12 @@ Hearts' deployment workflow uses an explicit source allowlist and does not
 copy `hearts.code-workspace`. The workspace file is inert editor
 configuration, not application runtime configuration.
 
-## Optional ordinary-terminal activation
+## VS Code-only activation
 
-The current Hearts design intentionally limits automatic activation to VS
-Code. For a separate terminal, a developer can opt in for that shell:
-
-```sh
-export PATH="/home/mozrin/Code/dugout/bin:$PATH"
-```
-
-This should remain explicit. Dugout does not rewrite `.profile`, `.bashrc`,
-`.zshrc`, or system paths.
+Dugout command shims are intentionally available only through VS Code
+workspace configuration. Dugout does not support ordinary-terminal
+activation, install commands under `~/.local/bin`, or modify `.profile`,
+`.bashrc`, `.zshrc`, or another global path.
 
 ## Editor extensions
 

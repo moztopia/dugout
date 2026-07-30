@@ -7,3 +7,6 @@
 /services/pihole/etc-dnsmasq.d/
 /services/pihole/etc-pihole/
 /.env
+/.dugout-install-state.json
+/.dugout-install-state.tmp
+**/__pycache__/

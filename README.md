@@ -1,51 +1,160 @@
-# Dugout
+# Install Dugout
 
-Current release: **1.1.0 — Double**
+Dugout is a standalone local development environment. It installs a complete
+service plane and builds isolated command-tool containers for PHP, Composer,
+Node.js, npm, npx, Dart, and Flutter.
 
-Dugout is Moztopia's local development service plane and containerized command
-toolbox. It owns the shared local services, the globally named `moznet` Docker
-network, and command images for PHP, Composer, Node.js, npm, npx, Dart, and
-Flutter.
+**Dugout must be installed before it can be used.**
 
-## Quick start
+The installation lives in this Git checkout. Dugout never installs commands
+globally, never changes a shell profile, and never adds anything to
+`~/.local/bin`. Its command shims are active only in new VS Code integrated
+terminals opened for this repository.
 
-Follow the [Dugout quick-start guide](QUICK-START.md) to configure the
-development environment, start the shared services, and build the command
-tools. Installing the command shims for use outside activated VS Code
-workspaces—and adding `~/.local/bin` to the workstation `PATH`—is optional.
+## Requirements
 
-## Everyday commands
+Installation currently supports Linux and macOS development hosts with:
+
+- Docker Engine or Docker Desktop;
+- the Docker Compose plugin;
+- Git;
+- GNU Make;
+- Python 3.9 or newer;
+- VS Code for the repository-scoped command environment;
+- free TCP ports `80` and `81`;
+- enough disk space for the service and tool images, including the larger
+  Flutter and Android toolchain image.
+
+Start Docker before installing. Dugout checks every requirement and stops
+without making changes when it finds a conflict.
+
+## Install
+
+Clone and open Dugout:
 
 ```sh
-make services-up       # create moznet if needed and start services
-make services-seed     # create missing Nginx Proxy Manager hosts
-make services-stop     # stop services but retain moznet and data
-make services-restart  # restart the service containers
-make services-status   # show container status
-make test              # run repository validation
+git clone https://github.com/mozrin/dugout.git
+cd dugout
+code .
 ```
 
-Projects join `moznet` as an external network; Dugout alone creates and owns
-it. Persistent application state is held in named Docker volumes. Ignored
-bind mounts and private backups are organized under [`services/`](services/).
+Run the complete installer from a terminal in the checkout:
 
-The Flutter image includes the Android command-line SDK needed for package
-resolution, analysis, tests, and Android builds, including Flutter's pinned
-NDK and CMake. It does not include or require Android Studio, an emulator, USB
-access, or device privileges.
-`flutter run` is intentionally rejected by the shim; use a host Flutter
-installation for interactive emulator or physical-device sessions.
+```sh
+make install
+```
 
-## Documentation
+The installer explains and checks its work before changing the machine. It:
 
-- [Quick-start guide](QUICK-START.md)
-- [Documentation index](docs/README.md)
-- [New-project integration](docs/10-new-project-quickstart.md)
-- [Configuration reference](docs/09-configuration-reference.md)
-- [Service and tool architecture](docs/01-platform-architecture.md)
-- [Runner and command shims](docs/03-runner-and-command-shims.md)
-- [Security and networking](docs/06-security-and-networking.md)
-- [Release notes](CHANGELOG.md)
+1. verifies Docker, Compose, required host commands, ports `80` and `81`, and
+   Dugout's reserved Docker resource names;
+2. stops if Dugout is already or partially installed;
+3. asks for a username, email address, and hidden password;
+4. shows the complete proposed installation and asks for confirmation;
+5. writes local credentials to the ignored `.env` file;
+6. builds all seven command-tool images;
+7. creates `moznet` and starts all six development services;
+8. creates the Nginx Proxy Manager administrator automatically;
+9. creates the standard local proxy hosts;
+10. runs the full validation suite and records the resources owned by the
+    installation.
 
-Dugout is development-machine infrastructure. It is not installed or deployed
-on application servers.
+The username is used for MinIO. The email address is used for Nginx Proxy
+Manager. The password is shared by those two local administrator accounts and
+is stored only in the ignored `.env` file.
+
+Flutter includes a large Android command-line toolchain, so its first build can
+take several minutes.
+
+## After installation
+
+Reopen this repository in VS Code and create a new integrated terminal.
+Existing terminals cannot receive an updated workspace environment.
+
+Verify the installation:
+
+```sh
+dug version
+dug doctor
+php --version
+composer --version
+node --version
+npm --version
+npx --version
+dart --version
+flutter --version
+```
+
+These names resolve to `dugout/bin` only inside this VS Code workspace.
+Terminals elsewhere continue to use their normal host `PATH`.
+
+The installed browser endpoints are:
+
+| Address | Service |
+| --- | --- |
+| `http://proxy.localhost` | Nginx Proxy Manager |
+| `http://portainer.localhost` | Portainer |
+| `http://adminer.localhost` | Adminer |
+| `http://mailpit.localhost` | Mailpit |
+| `http://dozzle.localhost` | Dozzle |
+| `http://minio.localhost` | MinIO console |
+| `http://s3.localhost` | MinIO S3 API |
+
+## Already installed
+
+`make install` deliberately refuses to modify an existing or partial
+installation. It checks its private state file together with the actual
+containers, volumes, images, runtime files, configuration, and `moznet`
+network.
+
+If installation previously stopped partway through, remove the recorded
+partial installation before trying again:
+
+```sh
+make uninstall
+make install
+```
+
+## Uninstall
+
+Uninstalling Dugout permanently deletes everything created by the installer:
+
+- service containers and tool images;
+- Nginx Proxy Manager hosts, certificates, and configuration;
+- Portainer and Adminer state;
+- Mailpit messages;
+- MinIO buckets and objects;
+- Docker volumes and the `moznet` network;
+- tool caches;
+- local configuration and credentials;
+- installation state.
+
+The Git checkout and committed source files remain.
+
+Run:
+
+```sh
+make uninstall
+```
+
+The uninstaller displays the complete data-loss warning and requires the exact
+confirmation phrase `DELETE DUGOUT`.
+
+It refuses to proceed when any non-Dugout container is attached to `moznet`.
+Disconnect those containers first, then rerun the command. This prevents
+Dugout from removing a network that an active development stack still uses.
+
+## Troubleshooting installation
+
+The installer does not automatically resolve host conflicts.
+
+If a requirement, port, container name, volume, image, or network is
+unavailable, it reports the exact conflict and stops. Resolve the issue, then
+rerun:
+
+```sh
+make install
+```
+
+For architecture and operational details after installation, see the
+[documentation index](docs/README.md).

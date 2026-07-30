@@ -1,8 +1,6 @@
 SHELL := /bin/sh
 .DEFAULT_GOAL := help
 
--include .env
-
 DUGOUT_IMAGE_PREFIX ?= moztopia/dugout
 DUGOUT_PHP_VERSION ?= 8.4
 DUGOUT_COMPOSER_VERSION ?= 2
@@ -27,24 +25,21 @@ NPX_IMAGE := $(IMAGE_PREFIX)-npx:$(NPM_VERSION)-node$(NODE_VERSION)
 DART_IMAGE := $(IMAGE_PREFIX)-dart:$(DART_VERSION)
 FLUTTER_IMAGE := $(IMAGE_PREFIX)-flutter:$(FLUTTER_VERSION)
 
-.PHONY: help install uninstall services-up services-seed services-stop services-restart services-status build-tools build-php build-composer build-node build-npm build-npx build-dart build-flutter test test-runner test-images lint
+.PHONY: help install uninstall services-up services-stop services-restart services-status build-tools build-php build-composer build-node build-npm build-npx build-dart build-flutter test test-runner test-images test-lifecycle lint
 
 help:
 	@printf '%s\n' \
 		'Dugout service and tool development' \
 		'' \
-		'  make install          Optionally install dug under ~/.local' \
-		'  make uninstall        Remove installed Dugout commands and catalog' \
-		'  make services-up      Create moznet and start shared services' \
-		'  make services-seed    Seed Nginx Proxy Manager proxy hosts' \
+		'  make install          Interactively install all Dugout tools and services' \
+		'  make uninstall        Completely remove Dugout tools, services, and data' \
+		'  make services-up      Start an installed Dugout service plane' \
 		'  make services-stop    Stop shared services without removing moznet' \
 		'  make services-restart Restart running shared services' \
 		'  make services-status  Show shared service status' \
-		'  make build-tools      Build all initial tool images' \
 		'  make test             Run runner and image contract tests' \
-		'  make lint             Validate project-owned shell scripts' \
 		'' \
-		'Overrides:' \
+		'Maintainer build overrides:' \
 		'  IMAGE_PREFIX          Default: moztopia/dugout' \
 		'  PHP_VERSION           Default: 8.4' \
 		'  COMPOSER_VERSION      Default: 2' \
@@ -54,16 +49,13 @@ help:
 		'  FLUTTER_VERSION       Default: 3.44.2'
 
 install:
-	./bin/dug install
+	python3 ./scripts/install.py
 
 uninstall:
-	./bin/dug uninstall
+	python3 ./scripts/uninstall.py
 
 services-up:
 	docker compose up --detach
-
-services-seed:
-	./scripts/seed-proxy-hosts
 
 services-stop:
 	docker compose stop
@@ -134,7 +126,10 @@ build-flutter:
 		--tag $(FLUTTER_IMAGE) \
 		.
 
-test: lint test-runner test-images
+test: lint test-lifecycle test-runner test-images
+
+test-lifecycle:
+	python3 ./tests/test_lifecycle.py
 
 test-runner:
 	./tests/test-runner.sh

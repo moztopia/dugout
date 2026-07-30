@@ -73,7 +73,7 @@ workspace only places `dugout/bin` before the host's existing `PATH`.
 | [Build, test, and publish](07-build-test-and-publish.md) | Image builds, contract tests, CI, and releases |
 | [Rollout and operations](08-rollout-and-operations.md) | Adoption, upgrades, troubleshooting, and rollback |
 | [Configuration reference](09-configuration-reference.md) | Every supported `.env` key and its precedence |
-| [New-project quick start](10-new-project-quickstart.md) | Safe, manual adoption for another project workspace |
+| [Optional workspace inclusion](10-optional-workspace-inclusion.md) | Safe, manual inclusion in another project workspace |
 
 ## Implementation status
 

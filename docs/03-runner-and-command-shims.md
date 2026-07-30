@@ -87,8 +87,7 @@ The runner determines values in this order, from highest to lowest priority:
    `DUGOUT_NODE_VERSION=24`;
 2. the file named by `DUGOUT_CONFIG`;
 3. Dugout's root `.env` when running from the source checkout;
-4. `~/.config/dugout/.env` for an installed runner;
-5. built-in safe defaults.
+4. built-in safe defaults.
 
 The configuration parser accepts documented `KEY=value` records only. It does
 not `source`, `eval`, interpolate, or execute `.env`. See the complete
@@ -247,8 +246,6 @@ dug which <name>                Print its shim and image
 dug list                        List configured tools and tags
 dug verify                      Check shims and local images
 dug doctor                      Check Docker, moznet, and configuration
-dug install                     Install runner, shims, catalog, and config
-dug uninstall                   Remove installed shims and catalog
 ```
 
 Examples:

@@ -23,8 +23,6 @@ Usage:
   dug version
   dug verify
   dug doctor
-  dug install
-  dug uninstall
 
 The command shims and machine defaults live in Dugout. A project's optional
 .dugout/tool-versions file can override the machine's default image tags.
@@ -132,10 +130,8 @@ set_config_default() {
 load_config() {
   if [ -n "${DUGOUT_CONFIG:-}" ]; then
     CONFIG_FILE="${DUGOUT_CONFIG}"
-  elif [ -f "${DUGOUT_ROOT}/.env" ]; then
-    CONFIG_FILE="${DUGOUT_ROOT}/.env"
   else
-    CONFIG_FILE="${XDG_CONFIG_HOME:-${HOME}/.config}/dugout/.env"
+    CONFIG_FILE="${DUGOUT_ROOT}/.env"
   fi
 
   [ -e "${CONFIG_FILE}" ] || return 0
@@ -684,58 +680,6 @@ doctor() {
   verify_project
 }
 
-install_runner() {
-  source_runner="${SCRIPT_DIR}/$(basename "$0")"
-  install_prefix="${DUGOUT_INSTALL_PREFIX:-${HOME}/.local}"
-  target_bin="${install_prefix}/bin"
-  target_share="${install_prefix}/share/dugout"
-  target_config="${XDG_CONFIG_HOME:-${HOME}/.config}/dugout"
-
-  mkdir -p "${target_bin}" "${target_share}" "${target_config}"
-  cp "${source_runner}" "${target_bin}/dug"
-  cp "${CATALOG}" "${target_share}/catalog"
-
-  for tool_name in php composer node npm npx dart flutter; do
-    cp "${SCRIPT_DIR}/${tool_name}" "${target_bin}/${tool_name}"
-    chmod 0755 "${target_bin}/${tool_name}"
-  done
-
-  if [ -r "${DUGOUT_ROOT}/.env.example" ]; then
-    cp "${DUGOUT_ROOT}/.env.example" "${target_config}/.env.example"
-    if [ ! -e "${target_config}/.env" ]; then
-      if [ -r "${DUGOUT_ROOT}/.env" ]; then
-        cp "${DUGOUT_ROOT}/.env" "${target_config}/.env"
-      else
-        cp "${DUGOUT_ROOT}/.env.example" "${target_config}/.env"
-      fi
-    fi
-  fi
-
-  chmod 0755 "${target_bin}/dug"
-  chmod 0644 "${target_share}/catalog"
-
-  printf 'Installed runner and shims under: %s\n' "${target_bin}"
-  printf 'Installed catalog: %s\n' "${target_share}/catalog"
-  printf 'Installed configuration: %s\n' "${target_config}"
-}
-
-uninstall_runner() {
-  install_prefix="${DUGOUT_INSTALL_PREFIX:-${HOME}/.local}"
-  target_bin="${install_prefix}/bin"
-  target_share="${install_prefix}/share/dugout"
-  target_config="${XDG_CONFIG_HOME:-${HOME}/.config}/dugout"
-
-  for tool_name in dug php composer node npm npx dart flutter; do
-    rm -f "${target_bin}/${tool_name}"
-  done
-  rm -f "${target_share}/catalog"
-  rmdir "${target_share}" 2>/dev/null || true
-
-  printf 'Removed Dugout runner and shims from: %s\n' "${target_bin}"
-  printf 'Removed Dugout catalog from: %s\n' "${target_share}"
-  printf 'Preserved configuration: %s\n' "${target_config}"
-}
-
 load_config
 apply_config_defaults
 resolve_catalog
@@ -802,14 +746,6 @@ case "${command_name}" in
   doctor)
     [ "$#" -eq 0 ] || fail "doctor takes no arguments"
     doctor
-    ;;
-  install)
-    [ "$#" -eq 0 ] || fail "install takes no arguments"
-    install_runner
-    ;;
-  uninstall)
-    [ "$#" -eq 0 ] || fail "uninstall takes no arguments"
-    uninstall_runner
     ;;
   *)
     fail "unknown command: ${command_name}"

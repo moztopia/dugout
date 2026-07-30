@@ -1,8 +1,13 @@
+name: dugout
+
 services:
   proxy:
     image: jc21/nginx-proxy-manager:2.15.1
     container_name: do_proxy
     restart: unless-stopped
+    environment:
+      INITIAL_ADMIN_EMAIL: ${DUGOUT_NPM_EMAIL}
+      INITIAL_ADMIN_PASSWORD: ${DUGOUT_NPM_PASSWORD}
     ports:
       - "80:80"
       - "81:81"

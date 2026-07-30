@@ -1,5 +1,21 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- `make install` now performs the complete interactive Dugout installation,
+  including preflight checks, private configuration, all tool builds, service
+  startup, automatic proxy-administrator creation, proxy seeding, validation,
+  and ownership-state recording;
+- `make uninstall` now reverses the complete installation after an explicit
+  data-loss confirmation and refuses to remove `moznet` while another
+  container is attached;
+- command shims are repository-local and activated only by VS Code workspace
+  settings; global runner and shim installation has been removed;
+- the root README is now the canonical installation guide and opens as VS
+  Code's startup editor when Dugout is opened directly.
+
 ## 1.1.0 — Double (2026-07-30)
 
 Double strengthens both halves of Dugout: the long-running service plane and
@@ -27,7 +43,7 @@ the short-lived command-tool plane.
   release instead of moving `latest` tags;
 - installing the runner copies the active local configuration on first
   install;
-- the root README now provides an end-to-end fresh-machine quick start.
+- the root README now provides an end-to-end fresh-machine installation guide.
 
 ### Security
 

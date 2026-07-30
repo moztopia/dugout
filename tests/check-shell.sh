@@ -13,7 +13,6 @@ set -- \
   bin/npx \
   bin/dart \
   bin/flutter \
-  scripts/seed-proxy-hosts \
   tools/flutter/flutter-entrypoint \
   tools/flutter/update-engine-version \
   tests/check-shell.sh \
@@ -23,6 +22,12 @@ set -- \
 for script do
   sh -n "${script}"
 done
+
+python3 -m py_compile \
+  scripts/dugout_lifecycle.py \
+  scripts/install.py \
+  scripts/uninstall.py \
+  tests/test_lifecycle.py
 
 if command -v shellcheck >/dev/null 2>&1; then
   for script do

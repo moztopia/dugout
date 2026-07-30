@@ -1,48 +1,48 @@
 # Build, test, and publish
 
-## Proposed repository layout
+## Repository layout
 
-The existing Dugout service definitions remain at the repository root. The
-tool implementation should be visibly separate:
+The root Compose file defines the service plane, while service-specific bind
+mounts are grouped under `services/`. Tool implementation remains visibly
+separate:
 
 ```text
 dugout/
 ├── bin/
 │   └── dug
 ├── docs/
-├── lib/
-│   ├── cache.sh
-│   ├── manifest.sh
-│   ├── network.sh
-│   └── runner.sh
-├── templates/
-│   └── project/
-│       └── .dugout/
+├── services/
+│   ├── adminer/
+│   ├── dozzle/
+│   ├── mailpit/
+│   ├── minio/
+│   ├── nginx-proxy-manager/
+│   │   ├── backups/        # ignored, machine-local
+│   │   ├── config/         # ignored runtime bind mount
+│   │   └── logs/           # ignored runtime bind mount
+│   ├── pihole/
+│   └── portainer/
+├── share/
+│   └── dugout/
 ├── tests/
-│   ├── contract/
-│   ├── fixtures/
-│   └── integration/
+│   ├── check-shell.sh
+│   ├── test-images.sh
+│   └── test-runner.sh
 ├── tools/
-│   ├── composer/
-│   │   ├── Dockerfile
-│   │   ├── metadata.yaml
-│   │   └── test.sh
 │   ├── node/
-│   ├── npm/
-│   ├── npx/
-│   ├── php/
-│   ├── shellcheck/
-│   └── shfmt/
-├── docker-bake.hcl
+│   └── php/
 └── docker-compose.yaml
 ```
 
-This is proposed structure. It should be adjusted only when implementation
-experience reveals a simpler contract.
+The `services/` runtime subdirectories are intentionally ignored. Compose
+creates bind-mount directories when needed, and named volumes hold persistent
+application state. Private backups belong under the relevant service's
+`backups/` directory and must never be committed.
 
-## Tool metadata
+## Future tool metadata
 
-Each tool should define machine-readable metadata:
+The current catalog is `share/dugout/catalog`. A future catalog format may
+carry richer machine-readable metadata:
 
 ```yaml
 name: php
@@ -85,31 +85,30 @@ targets can avoid duplicated source definitions.
 
 ## Local build commands
 
-Proposed interface:
+The implemented Make targets are:
 
 ```sh
-make tool-build TOOL=php VERSION=8.4.12
-make tool-test TOOL=php VERSION=8.4.12
-make tool-smoke TOOL=php VERSION=8.4.12
-make tools-test
+make build-tools
+make build-php
+make build-composer
+make build-node
+make build-npm
+make build-npx
+make test
 ```
 
-Or through the future runner:
+Version overrides use Make variables:
 
 ```sh
-dug development build php
-dug development test php
+PHP_VERSION=8.5 make build-php
+NODE_VERSION=24 NPM_VERSION=11 make build-node build-npm build-npx
 ```
 
 Commands must produce the exact image reference they built and must not
 overwrite a stable published tag during local development.
 
-Suggested local tags:
-
-```text
-dugout/php:local
-dugout/php:test-<commit>
-```
+Build orchestration through `dug` is not implemented; the runner executes
+tools and deliberately does not build or publish images.
 
 ## Contract-test suite
 

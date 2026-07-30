@@ -73,6 +73,8 @@ fi
 "${ROOT_DIR}/bin/dug" verify >/dev/null
 "${ROOT_DIR}/bin/dug" which php |
   grep -Fq 'example.test/moztopia/dugout-php:8.4'
+"${ROOT_DIR}/bin/dug" version |
+  grep -Fqx "dug $(cat "${ROOT_DIR}/VERSION") (Double)"
 
 rm "${TEST_DIR}/project/.dugout/tool-versions"
 export DUGOUT_PROJECT_ROOT="${TEST_DIR}/project"
@@ -100,6 +102,8 @@ done
 
 [ -f "${TEST_DIR}/install-config/dugout/.env.example" ]
 [ -f "${TEST_DIR}/install-config/dugout/.env" ]
+"${TEST_DIR}/install/bin/dug" version |
+  grep -Fqx "dug $(cat "${ROOT_DIR}/VERSION") (Double)"
 
 cat > "${TEST_DIR}/bad.env" <<'EOF'
 DUGOUT_UNKNOWN_SETTING=value

@@ -2,9 +2,9 @@
 
 ## Purpose
 
-This document defines the proposed contract for every Dugout tool image. A
-tool can have unavoidable runtime dependencies, but it exposes one public
-command and one reason to exist.
+This document defines the contract for every Dugout tool image. A tool can
+have unavoidable runtime dependencies, but it exposes one public command and
+one reason to exist.
 
 Examples:
 

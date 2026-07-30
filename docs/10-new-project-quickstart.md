@@ -28,13 +28,15 @@ discarding or changing unrelated configuration.
 - Required tool images have been built or pulled.
 - The project is a Git repository, or `DUGOUT_PROJECT_ROOT` will be configured
   deliberately.
-- `moznet` exists before running a tool whose policy uses it.
+- Dugout services have been started so `moznet` exists before running a tool
+  whose policy uses it.
 
 Validate Dugout first:
 
 ```sh
 cd /path/to/dugout
 cp .env.example .env  # only when .env does not already exist
+make services-up
 make build-tools
 ./bin/dug doctor
 ```

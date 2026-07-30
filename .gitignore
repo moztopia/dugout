@@ -1,6 +1,8 @@
 **/*.log
 **/database.sqlite*
-**/git-diff.txt
-**/dump_files*txt
-**/test.sql
+/services/**/backups/
+/services/**/config/
+/services/**/logs/
+/services/pihole/etc-dnsmasq.d/
+/services/pihole/etc-pihole/
 /.env

@@ -154,11 +154,25 @@ Allowed values:
 - `bridge`;
 - `moznet`.
 
-`DUGOUT_MOZNET_NAME` maps the logical `moznet` policy to the actual external
-Docker network name. Its default is `moznet`.
+`DUGOUT_MOZNET_NAME` maps the logical `moznet` policy to the globally named
+Docker network managed by Dugout Compose. Its default is `moznet`.
 
 The runner inspects this network before a `moznet` invocation. It never creates
-the network and never publishes a port.
+the network and never publishes a port; `make services-up` creates it.
+
+## Service-plane settings
+
+These values configure long-running services in `docker-compose.yaml`. The
+runner accepts them in the shared machine `.env` but does not pass them to tool
+containers.
+
+| Key | Default | Purpose |
+| --- | --- | --- |
+| `DUGOUT_MINIO_ROOT_USER` | `minioadmin` | MinIO development administrator |
+| `DUGOUT_MINIO_ROOT_PASSWORD` | `minioadmin` | MinIO development password |
+
+Change both defaults on each development machine. They are local development
+credentials and must not be committed.
 
 ## Advanced settings
 

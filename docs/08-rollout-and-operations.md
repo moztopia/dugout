@@ -409,7 +409,12 @@ dug network check
 ```
 
 Start or repair Dugout. Do not create an incidental replacement network from
-the tool runner.
+the tool runner:
+
+```sh
+cd /path/to/dugout
+make services-up
+```
 
 ### Tool needs a credential
 

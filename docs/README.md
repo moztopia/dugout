@@ -12,6 +12,9 @@ The initial tool plane is implemented for PHP, Composer, Node.js, npm, and
 npx. Future tools should follow the same image, runner, security, and
 documentation contracts.
 
+Current release: **1.1.0 — Double**. See the
+[release notes](../CHANGELOG.md).
+
 ## Current command model
 
 ```mermaid
@@ -49,8 +52,8 @@ workspace only places `dugout/bin` before the host's existing `PATH`.
 - Files created in the project use the caller's numeric UID and GID.
 - Containers are ephemeral, read-only except for declared mounts and `/tmp`,
   drop capabilities, and never publish ports.
-- Network access is explicit per tool. `moznet` must already exist and is
-  never created by the runner.
+- Network access is explicit per tool. Dugout Compose creates `moznet`; the
+  runner only uses it when policy permits and never creates it.
 - Production servers contain no Dugout repository, runner, shims, images,
   configuration, or `moznet`.
 - Deployable scripts use ordinary command names. Development `PATH` selects
@@ -81,6 +84,8 @@ workspace only places `dugout/bin` before the host's existing `PATH`.
 | Root `.env` configuration | Implemented |
 | Optional per-project version manifest | Implemented |
 | Runner and image contract tests | Implemented |
+| Dugout-managed `moznet` lifecycle | Implemented |
+| Mailpit, Dozzle, and MinIO services | Implemented |
 | Digest lock file and registry publication automation | Future |
 | Native Windows wrappers | Future |
 | Persistent editor language-server integration | Tool-specific future work |
@@ -89,7 +94,7 @@ workspace only places `dugout/bin` before the host's existing `PATH`.
 
 **Dugout service**
 : A long-running local infrastructure container managed by Dugout Compose,
-  such as the proxy, Portainer, Adminer, or Pi-hole.
+  such as the proxy, Portainer, Adminer, Mailpit, Dozzle, or MinIO.
 
 **Tool image**
 : An immutable image whose public interface is one command.

@@ -1,11 +1,7 @@
 .git
 .env
-data
 docs
-nginx-proxy-manager
-adminer
-pihole
-portainer
+services
 tests
 *.log
 *.sqlite*

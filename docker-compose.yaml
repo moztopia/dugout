@@ -1,14 +1,14 @@
 services:
   proxy:
-    image: jc21/nginx-proxy-manager:latest
+    image: jc21/nginx-proxy-manager:2.15.1
     container_name: do_proxy
     restart: unless-stopped
     ports:
       - "80:80"
       - "81:81"
     volumes:
-      - ./nginx-proxy-manager/config:/config
-      - ./nginx-proxy-manager/logs:/var/log/nginx
+      - ./services/nginx-proxy-manager/config:/config
+      - ./services/nginx-proxy-manager/logs:/var/log/nginx
       - do_proxy_data:/data
       - do_proxy_letsencrypt:/etc/letsencrypt
     depends_on:
@@ -18,25 +18,67 @@ services:
       - moznet
 
   portainer:
-    image: portainer/portainer-ce
+    image: portainer/portainer-ce:2.39.2
     container_name: do_portainer
     restart: unless-stopped
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - ./portainer/config:/config
-      - ./portainer/logs:/logs
+      - ./services/portainer/config:/config
+      - ./services/portainer/logs:/logs
       - do_portainer_data:/data
     networks:
       - moznet
 
   adminer:
-    image: adminer
+    image: adminer:5.4.2
     container_name: do_adminer
     restart: unless-stopped
     volumes:
-      - ./adminer/config:/config
-      - ./adminer/logs:/logs
+      - ./services/adminer/config:/config
+      - ./services/adminer/logs:/logs
       - do_adminer_data:/var/www/html
+    networks:
+      - moznet
+
+  mailpit:
+    image: axllent/mailpit:v1.30.6
+    container_name: do_mailpit
+    restart: unless-stopped
+    environment:
+      MP_DATABASE: /data/mailpit.db
+      MP_MAX_MESSAGES: 5000
+    expose:
+      - "1025"
+      - "8025"
+    volumes:
+      - do_mailpit_data:/data
+    networks:
+      - moznet
+
+  dozzle:
+    image: amir20/dozzle:v10.6.13
+    container_name: do_dozzle
+    restart: unless-stopped
+    expose:
+      - "8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - moznet
+
+  minio:
+    image: quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z
+    container_name: do_minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${DUGOUT_MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${DUGOUT_MINIO_ROOT_PASSWORD:-minioadmin}
+    expose:
+      - "9000"
+      - "9001"
+    volumes:
+      - do_minio_data:/data
     networks:
       - moznet
 
@@ -51,8 +93,8 @@ services:
   #     TZ: Asia/Bangkok
   #     WEBPASSWORD: "changeme" # set your admin password
   #   volumes:
-  #     - ./pihole/etc-pihole:/etc/pihole
-  #     - ./pihole/etc-dnsmasq.d:/etc/dnsmasq.d
+  #     - ./services/pihole/etc-pihole:/etc/pihole
+  #     - ./services/pihole/etc-dnsmasq.d:/etc/dnsmasq.d
   #   networks:
   #     - moznet
 
@@ -61,8 +103,11 @@ volumes:
   do_proxy_letsencrypt:
   do_portainer_data:
   do_adminer_data:
+  do_mailpit_data:
+  do_minio_data:
   # do_pihole_data:
 
 networks:
   moznet:
-    external: true
+    name: ${DUGOUT_MOZNET_NAME:-moznet}
+    driver: bridge

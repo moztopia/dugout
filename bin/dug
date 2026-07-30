@@ -2,6 +2,8 @@
 set -eu
 
 PROGRAM_NAME="dug"
+DUGOUT_VERSION="1.1.0"
+DUGOUT_RELEASE_NAME="Double"
 NETWORK_OVERRIDE=""
 SCRIPT_DIR="$(CDPATH='' cd "$(dirname "$0")" && pwd)"
 DUGOUT_ROOT="$(CDPATH='' cd "${SCRIPT_DIR}/.." && pwd)"
@@ -18,6 +20,7 @@ Usage:
   dug image <name>
   dug which <name>
   dug list
+  dug version
   dug verify
   dug doctor
   dug install
@@ -75,6 +78,14 @@ set_config_default() {
     DUGOUT_MOZNET_NAME)
       [ -n "${DUGOUT_MOZNET_NAME+x}" ] ||
         DUGOUT_MOZNET_NAME="${config_value}"
+      ;;
+    DUGOUT_MINIO_ROOT_USER)
+      [ -n "${DUGOUT_MINIO_ROOT_USER+x}" ] ||
+        DUGOUT_MINIO_ROOT_USER="${config_value}"
+      ;;
+    DUGOUT_MINIO_ROOT_PASSWORD)
+      [ -n "${DUGOUT_MINIO_ROOT_PASSWORD+x}" ] ||
+        DUGOUT_MINIO_ROOT_PASSWORD="${config_value}"
       ;;
     DUGOUT_CACHE_HOME)
       [ -n "${DUGOUT_CACHE_HOME+x}" ] ||
@@ -582,7 +593,11 @@ install_runner() {
   if [ -r "${DUGOUT_ROOT}/.env.example" ]; then
     cp "${DUGOUT_ROOT}/.env.example" "${target_config}/.env.example"
     if [ ! -e "${target_config}/.env" ]; then
-      cp "${DUGOUT_ROOT}/.env.example" "${target_config}/.env"
+      if [ -r "${DUGOUT_ROOT}/.env" ]; then
+        cp "${DUGOUT_ROOT}/.env" "${target_config}/.env"
+      else
+        cp "${DUGOUT_ROOT}/.env.example" "${target_config}/.env"
+      fi
     fi
   fi
 
@@ -648,6 +663,10 @@ case "${command_name}" in
     [ "$#" -eq 0 ] || fail "list takes no arguments"
     resolve_project_root
     configured_tools | tr '|' ' '
+    ;;
+  version)
+    [ "$#" -eq 0 ] || fail "version takes no arguments"
+    printf 'dug %s (%s)\n' "${DUGOUT_VERSION}" "${DUGOUT_RELEASE_NAME}"
     ;;
   verify)
     [ "$#" -eq 0 ] || fail "verify takes no arguments"

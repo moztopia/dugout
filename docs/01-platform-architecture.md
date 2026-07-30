@@ -12,29 +12,36 @@ Dugout provides shared infrastructure for local development:
 - Nginx Proxy Manager for name-based routing;
 - Portainer for container administration;
 - Adminer for database administration;
-- Filesystem for browser-based file management;
-- Pi-hole or another DNS layer for local name resolution;
-- the external Docker network named `moznet`.
+- Mailpit for captured development email;
+- Dozzle for live container logs;
+- MinIO for local S3-compatible object storage;
+- the globally named Docker network `moznet`.
+
+Pi-hole remains an optional, commented Compose definition and is not part of
+the default service set.
 
 Application repositories remain separate Compose projects. During local
 development, each project's `docker-compose.override.yaml` connects selected
 application services to `moznet`.
 
+Service-specific bind mounts are grouped under `services/<service>/`. Runtime
+configuration, logs, and private backups in that tree are machine-local and
+ignored by Git. Persistent service application data uses the named volumes
+declared by the root `docker-compose.yaml`.
+
 ```mermaid
 flowchart TB
     subgraph machine["Local development machine"]
-        subgraph dns["DNS"]
-            pihole["Pi-hole"]
-        end
-
         subgraph dugout["Dugout service plane"]
             proxy["Nginx Proxy Manager"]
             portainer["Portainer"]
             adminer["Adminer"]
-            filesystem["Filesystem"]
+            mailpit["Mailpit"]
+            dozzle["Dozzle"]
+            minio["MinIO"]
         end
 
-        moznet[["moznet<br/>external bridge"]]
+        moznet[["moznet<br/>Dugout-managed bridge"]]
 
         subgraph projects["Project workloads"]
             heartsApi["Hearts API"]
@@ -42,11 +49,12 @@ flowchart TB
             others["Other projects"]
         end
 
-        pihole --> moznet
         proxy --> moznet
         portainer --> moznet
         adminer --> moznet
-        filesystem --> moznet
+        mailpit --> moznet
+        dozzle --> moznet
+        minio --> moznet
         moznet --> heartsApi
         moznet --> heartsFrontend
         moznet --> others
@@ -236,9 +244,13 @@ metadata.
 
 ## `moznet` lifecycle
 
-`moznet` is external to application Compose projects. Docker Compose treats an
-external network as infrastructure whose lifecycle is managed elsewhere and
-fails when that network does not exist.
+The Dugout Compose project creates and owns a bridge network with the explicit
+global name `moznet`. This avoids Docker's project-name prefix and makes a
+fresh `make services-up` deterministic.
+
+`moznet` remains external to application Compose projects. Those projects
+treat it as infrastructure whose lifecycle is managed by Dugout and fail when
+Dugout has not created it.
 
 The tool runner must follow the same ownership rule:
 
@@ -248,8 +260,9 @@ The tool runner must follow the same ownership rule:
 - it must emit a clear message telling the developer to start or repair
   Dugout when `moznet` is required but unavailable.
 
-This keeps failures visible and prevents an accidentally created, incorrectly
-configured network from impersonating the real platform network.
+Only Dugout Compose creates the network. This keeps failures visible and
+prevents an incidental tool or application command from impersonating the
+real platform network.
 
 ## Architectural invariants
 

@@ -110,10 +110,13 @@ def uninstall() -> None:
 
     print("\nRemoving images created by this installation...")
     for image in plan.get("images", []):
-        result = run(["docker", "image", "rm", str(image)], check=False)
+        image_name = str(image)
+        if not image_exists(image_name):
+            continue
+        result = run(["docker", "image", "rm", image_name], check=False)
         if result.returncode != 0:
             fail(
-                f"Could not remove image {image}. It may be used by another "
+                f"Could not remove image {image_name}. It may be used by another "
                 "container; resolve that conflict and rerun make uninstall."
             )
 

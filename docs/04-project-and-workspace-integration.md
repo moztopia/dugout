@@ -124,11 +124,11 @@ flutter --version
 From a nested directory:
 
 ```sh
-cd frontend
+cd website
 node -e 'console.log(process.cwd())'
 ```
 
-The printed path should be `/workspace/frontend`.
+The printed path should be `/workspace/website`.
 
 ## Interactive commands, scripts, and Make
 
@@ -148,7 +148,7 @@ Example shell script:
 set -eu
 
 php scripts/check.php
-npm --prefix frontend run typecheck
+npm --prefix website run typecheck
 ```
 
 Example Make recipe:

@@ -111,9 +111,9 @@ Example:
 
 ```text
 host root:       /home/developer/Code/hearts
-host cwd:        /home/developer/Code/hearts/frontend/src
+host cwd:        /home/developer/Code/hearts/website/src
 container root:  /workspace
-container cwd:   /workspace/frontend/src
+container cwd:   /workspace/website/src
 ```
 
 ## Image selection
@@ -266,7 +266,7 @@ A shell script launched from an activated terminal inherits `PATH`, so this:
 set -eu
 
 php scripts/report.php
-npm --prefix frontend test
+npm --prefix website test
 ```
 
 uses the same Dugout shims as commands typed interactively. Make recipes and

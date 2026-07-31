@@ -45,7 +45,7 @@ flowchart TB
 
         subgraph projects["Project workloads"]
             heartsApi["Hearts API"]
-            heartsFrontend["Hearts frontend"]
+            heartsWebsite["Hearts website"]
             others["Other projects"]
         end
 
@@ -56,7 +56,7 @@ flowchart TB
         dozzle --> moznet
         minio --> moznet
         moznet --> heartsApi
-        moznet --> heartsFrontend
+        moznet --> heartsWebsite
         moznet --> others
     end
 ```

@@ -13,7 +13,7 @@
 
 ---
 
-## Installation & Usage
+## Usage
 
 The implementation and its language configuration remain in `tools/barrel`.
 Inside the Dugout workspace, invoke it through the repository-local

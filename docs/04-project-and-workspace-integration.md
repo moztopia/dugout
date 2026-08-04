@@ -17,8 +17,8 @@ The application does not need copied shims, a runner, an `.env`, or a required
 
 For another repository, follow the
 [optional workspace-inclusion guide](10-optional-workspace-inclusion.md).
-Adding the workspace entry is always a manual review and edit. No Dugout
-installation command rewrites project or editor files.
+Adding the workspace entry is always a manual review and edit. Dugout never
+rewrites project or editor files.
 
 ```mermaid
 flowchart LR

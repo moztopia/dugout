@@ -13,6 +13,7 @@ set -- \
   bin/npm \
   bin/npx \
   tests/check-shell.sh \
+  tests/test-compose.sh \
   tests/test-barrel.sh \
   tests/test-images.sh \
   tests/test-runner.sh

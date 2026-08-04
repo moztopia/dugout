@@ -324,8 +324,7 @@ Rollback is a Git operation:
 Do not delete old exact-version images immediately after a new release.
 Registry retention must support practical project rollback.
 
-If the runner itself regresses, retain an install mechanism for a previous
-runner release.
+If the runner itself regresses, check out a previous runner release.
 
 ## Troubleshooting
 

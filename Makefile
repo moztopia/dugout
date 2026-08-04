@@ -19,7 +19,7 @@ NODE_IMAGE := $(IMAGE_PREFIX)-node:$(NODE_VERSION)
 NPM_IMAGE := $(IMAGE_PREFIX)-npm:$(NPM_VERSION)-node$(NODE_VERSION)
 NPX_IMAGE := $(IMAGE_PREFIX)-npx:$(NPM_VERSION)-node$(NODE_VERSION)
 
-.PHONY: help up down stop restart status build-tools build-php build-composer build-node build-npm build-npx test test-barrel test-runner test-images lint lint-shell lint-markdown
+.PHONY: help up down stop restart status build-tools build-php build-composer build-node build-npm build-npx test test-compose test-barrel test-runner test-images lint lint-shell lint-markdown
 
 help:
 	@printf '%s\n' \
@@ -99,7 +99,10 @@ build-npx:
 		--tag $(NPX_IMAGE) \
 		.
 
-test: lint test-barrel test-runner test-images
+test: lint test-compose test-barrel test-runner test-images
+
+test-compose:
+	./tests/test-compose.sh
 
 test-barrel:
 	./tests/test-barrel.sh

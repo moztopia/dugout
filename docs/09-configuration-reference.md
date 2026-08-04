@@ -253,7 +253,7 @@ There is no installation step. Copy `.env.example` to `.env`, review the
 service switches and ports, and run `make up`.
 
 The shims remain in the Dugout checkout and are enabled only by VS Code
-workspace settings. Installation deliberately does not:
+workspace settings. Dugout does not:
 
 - search for application projects;
 - create or modify a `.code-workspace` file;

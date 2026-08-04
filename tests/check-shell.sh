@@ -6,12 +6,14 @@ cd "${ROOT_DIR}"
 
 set -- \
   bin/dug \
+  bin/barrel \
   bin/php \
   bin/composer \
   bin/node \
   bin/npm \
   bin/npx \
   tests/check-shell.sh \
+  tests/test-barrel.sh \
   tests/test-images.sh \
   tests/test-runner.sh
 
@@ -23,6 +25,7 @@ python3 -m py_compile \
   scripts/dugout_lifecycle.py \
   scripts/install.py \
   scripts/uninstall.py \
+  tools/barrel/barrel \
   tests/test_lifecycle.py
 
 if command -v shellcheck >/dev/null 2>&1; then

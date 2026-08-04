@@ -19,7 +19,7 @@ NODE_IMAGE := $(IMAGE_PREFIX)-node:$(NODE_VERSION)
 NPM_IMAGE := $(IMAGE_PREFIX)-npm:$(NPM_VERSION)-node$(NODE_VERSION)
 NPX_IMAGE := $(IMAGE_PREFIX)-npx:$(NPM_VERSION)-node$(NODE_VERSION)
 
-.PHONY: help install uninstall services-up services-stop services-restart services-status build-tools build-php build-composer build-node build-npm build-npx test test-runner test-images test-lifecycle lint
+.PHONY: help install uninstall services-up services-stop services-restart services-status build-tools build-php build-composer build-node build-npm build-npx test test-barrel test-runner test-images test-lifecycle lint
 
 help:
 	@printf '%s\n' \
@@ -102,10 +102,13 @@ build-npx:
 		--tag $(NPX_IMAGE) \
 		.
 
-test: lint test-lifecycle test-runner test-images
+test: lint test-lifecycle test-barrel test-runner test-images
 
 test-lifecycle:
 	python3 ./tests/test_lifecycle.py
+
+test-barrel:
+	./tests/test-barrel.sh
 
 test-runner:
 	./tests/test-runner.sh

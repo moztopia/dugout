@@ -15,7 +15,9 @@
 
 ## Installation & Usage
 
-The tool is typically invoked via a shim provided in the `toolz` suite:
+The implementation and its language configuration remain in `tools/barrel`.
+Inside the Dugout workspace, invoke it through the repository-local
+`bin/barrel` shim:
 
 ```bash
 # Run in the directory containing barrel.yaml
@@ -23,7 +25,14 @@ barrel
 
 # Or specify a path to a configuration file
 barrel path/to/project/barrel.yaml
+
+# Show CLI usage and the bundled documentation/configuration locations
+barrel --help
 ```
+
+The shim forwards to `tools/barrel/barrel`. The implementation loads
+`barrel.languages.yaml` from that same directory, regardless of the current
+working directory.
 
 ---
 

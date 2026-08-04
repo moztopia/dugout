@@ -1,14 +1,37 @@
 #!/usr/bin/env python3
+import argparse
 import os
 import sys
 import yaml
 
+
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+LANGUAGES_PATH = os.path.join(SCRIPT_DIR, "barrel.languages.yaml")
+README_PATH = os.path.join(SCRIPT_DIR, "barrel.README.md")
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(
+        prog="barrel",
+        description="Generate barrel files from a barrel.yaml configuration.",
+        epilog=(
+            f"Documentation: {README_PATH}\n"
+            f"Language definitions: {LANGUAGES_PATH}"
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    parser.add_argument(
+        "config",
+        nargs="?",
+        default=os.path.join(os.getcwd(), "barrel.yaml"),
+        help="configuration file (default: ./barrel.yaml)",
+    )
+    return parser.parse_args()
+
+
 def load_languages_config():
     """Load the language configurations from barrel.languages.yaml in the same directory as the script."""
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    languages_path = os.path.join(script_dir, "barrel.languages.yaml")
-    
-    if not os.path.exists(languages_path):
+    if not os.path.exists(LANGUAGES_PATH):
         # Fallback to default Dart configuration if barrel.languages.yaml is missing
         return {
             "dart": {
@@ -18,7 +41,7 @@ def load_languages_config():
             }
         }
     
-    with open(languages_path, "r") as f:
+    with open(LANGUAGES_PATH, "r") as f:
         return yaml.safe_load(f)
 
 def load_config(path, languages_config):
@@ -221,11 +244,9 @@ def build_barrel(config, config_path):
     print(f"[DONE] Wrote {top_file}")
 
 if __name__ == "__main__":
-    if len(sys.argv) == 2:
-        config_path = sys.argv[1]
-    else:
-        config_path = os.path.join(os.getcwd(), "barrel.yaml")
-        
+    args = parse_args()
+    config_path = args.config
+
     if not os.path.exists(config_path):
         print(f"[ERROR] Barrel configuration file not found at: {config_path}")
         print("You must execute this command from the directory where barrel.yaml exists, or pass its explicit path.")

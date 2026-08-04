@@ -151,6 +151,8 @@ class LifecycleTests(unittest.TestCase):
             settings["terminal.integrated.env.linux"]["PATH"],
             "${workspaceFolder}/bin:${env:PATH}",
         )
+        self.assertTrue((ROOT / "bin/barrel").is_file())
+        self.assertTrue((ROOT / "tools/barrel/barrel").is_file())
 
 
 if __name__ == "__main__":

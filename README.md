@@ -2,7 +2,7 @@
 
 Dugout is a standalone local development environment. It installs a complete
 service plane and builds isolated command-tool containers for PHP, Composer,
-Node.js, npm, npx, Dart, and Flutter.
+Node.js, npm, and npx.
 
 **Dugout must be installed before it can be used.**
 
@@ -22,8 +22,7 @@ Installation currently supports Linux and macOS development hosts with:
 - Python 3.9 or newer;
 - VS Code for the repository-scoped command environment;
 - free TCP ports `80` and `81`;
-- enough disk space for the service and tool images, including the larger
-  Flutter and Android toolchain image.
+- enough disk space for the service and tool images.
 
 Start Docker before installing. Dugout checks every requirement and stops
 without making changes when it finds a conflict.
@@ -49,22 +48,18 @@ The installer explains and checks its work before changing the machine. It:
 1. verifies Docker, Compose, required host commands, ports `80` and `81`, and
    Dugout's reserved Docker resource names;
 2. stops if Dugout is already or partially installed;
-3. asks for a username, email address, and hidden password;
+3. asks for an email address and hidden password;
 4. shows the complete proposed installation and asks for confirmation;
 5. writes local credentials to the ignored `.env` file;
 6. builds all seven command-tool images;
-7. creates `moznet` and starts all six development services;
+7. creates `moznet` and starts all five development services;
 8. creates the Nginx Proxy Manager administrator automatically;
 9. creates the standard local proxy hosts;
 10. runs the full validation suite and records the resources owned by the
     installation.
 
-The username is used for MinIO. The email address is used for Nginx Proxy
-Manager. The password is shared by those two local administrator accounts and
-is stored only in the ignored `.env` file.
-
-Flutter includes a large Android command-line toolchain, so its first build can
-take several minutes.
+The email address and password configure the Nginx Proxy Manager administrator
+and are stored only in the ignored `.env` file.
 
 ## After installation
 
@@ -81,8 +76,6 @@ composer --version
 node --version
 npm --version
 npx --version
-dart --version
-flutter --version
 ```
 
 These names resolve to `dugout/bin` only inside this VS Code workspace.
@@ -97,8 +90,6 @@ The installed browser endpoints are:
 | `http://adminer.localhost` | Adminer |
 | `http://mailpit.localhost` | Mailpit |
 | `http://dozzle.localhost` | Dozzle |
-| `http://minio.localhost` | MinIO console |
-| `http://s3.localhost` | MinIO S3 API |
 
 ## Already installed
 
@@ -123,7 +114,6 @@ Uninstalling Dugout permanently deletes everything created by the installer:
 - Nginx Proxy Manager hosts, certificates, and configuration;
 - Portainer and Adminer state;
 - Mailpit messages;
-- MinIO buckets and objects;
 - Docker volumes and the `moznet` network;
 - tool caches;
 - local configuration and credentials;

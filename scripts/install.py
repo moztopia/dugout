@@ -93,14 +93,8 @@ def preflight() -> list[str]:
     return images_to_remove
 
 
-def ask_questions() -> tuple[str, str, str]:
+def ask_questions() -> tuple[str, str]:
     print("\nInstallation questions")
-    print(
-        "\nUsername\n"
-        "  Used as the administrator name for Dugout's local MinIO object store."
-    )
-    username = input("  Username: ").strip()
-
     print(
         "\nEmail\n"
         "  Used to create the Nginx Proxy Manager administrator account."
@@ -109,30 +103,29 @@ def ask_questions() -> tuple[str, str, str]:
 
     print(
         "\nPassword\n"
-        "  Shared by the local MinIO and Nginx Proxy Manager administrator "
-        "accounts. It is stored only in Dugout's ignored .env file."
+        "  Used by the Nginx Proxy Manager administrator account. It is "
+        "stored only in Dugout's ignored .env file."
     )
     password = getpass.getpass("  Password: ")
     confirmation = getpass.getpass("  Confirm password: ")
     if password != confirmation:
         fail("The passwords did not match. Nothing was installed.")
 
-    errors = validate_answers(username, email, password)
+    errors = validate_answers(email, password)
     if errors:
         fail("\n".join(errors) + "\nNothing was installed.")
-    return username, email, password
+    return email, password
 
 
-def confirm(username: str, email: str) -> None:
+def confirm(email: str) -> None:
     print(
         "\nInstallation summary\n"
         f"  Dugout version:       {VERSION}\n"
-        f"  MinIO administrator:  {username}\n"
         f"  Proxy administrator:  {email}\n"
         "  Published ports:      80 and 81\n"
         "  Docker network:       moznet\n"
-        "  Tool images:          PHP, Composer, Node, npm, npx, Dart, Flutter\n"
-        "  Services:             Proxy, Portainer, Adminer, Mailpit, Dozzle, MinIO\n"
+        "  Tool images:          PHP, Composer, Node, npm, npx\n"
+        "  Services:             Proxy, Portainer, Adminer, Mailpit, Dozzle\n"
         "\nNo commands or shims will be installed globally."
     )
     answer = input("\nInstall Dugout now? [y/N] ").strip().lower()
@@ -142,7 +135,7 @@ def confirm(username: str, email: str) -> None:
 
 
 def verify_services() -> None:
-    expected = {"proxy", "portainer", "adminer", "mailpit", "dozzle", "minio"}
+    expected = {"proxy", "portainer", "adminer", "mailpit", "dozzle"}
     result = run(
         [
             "docker",
@@ -165,16 +158,16 @@ def verify_services() -> None:
 def install() -> None:
     require_interactive()
     images_to_remove = preflight()
-    username, email, password = ask_questions()
-    confirm(username, email)
+    email, password = ask_questions()
+    confirm(email)
 
     state = initial_state(images_to_remove)
     write_state(state)
     try:
         print("\nWriting private local configuration...")
-        write_private_file(ENV_FILE, env_contents(username, email, password))
+        write_private_file(ENV_FILE, env_contents(email, password))
 
-        print("\nBuilding Dugout tool images. Flutter can take several minutes...")
+        print("\nBuilding Dugout tool images...")
         run(["make", "build-tools"])
 
         print("\nStarting Dugout services...")

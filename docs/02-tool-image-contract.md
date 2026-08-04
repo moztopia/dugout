@@ -13,8 +13,6 @@ Examples:
 - the npm image exposes `npm`, even though npm requires Node.js;
 - the npx image exposes `npx`, even though npx requires Node.js and npm
   internals;
-- the Dart image exposes `dart`;
-- the Flutter image exposes `flutter` and contains only command-line Android
   build dependencies;
 - the ShellCheck image exposes `shellcheck`.
 
@@ -183,18 +181,9 @@ flowchart TB
 This preserves the one-command interface without paying the full build and
 registry cost three times.
 
-### Dart and Flutter
 
-The implemented Dart image uses the official pinned Dart SDK image. The
-implemented Flutter image is a deliberate heavyweight exception: it uses the
-official pinned Flutter SDK archive plus the Android command-line SDK,
-platform, build tools, and Flutter's pinned Android NDK and CMake. It does not
 contain Android Studio, an emulator, or device access.
 
-The image supports `flutter pub`, `flutter analyze`, `flutter test`, and
-`flutter build`. Its entrypoint rejects `flutter run`; interactive emulator
-and physical-device workflows require a host Flutter installation and
-explicit device access. Flutter writes SDK-internal metadata during normal
 commands, so its unprivileged, ephemeral container is the documented
 read-only-root exception. The writable container layer is discarded at exit.
 
@@ -237,8 +226,6 @@ Examples:
 | --- | --- |
 | Composer | `/cache/composer` |
 | npm/npx | `/cache/npm` |
-| Dart | Versioned host cache mounted at the same absolute path (`PUB_CACHE`) |
-| Flutter | Same-path host mounts for its pub and Gradle caches |
 | OpenAPI Generator | `/cache/openapi-generator` |
 
 The runner may mount a named volume or project-scoped host cache at `/cache`.
@@ -270,8 +257,6 @@ Suggested defaults:
 | Node | `none` |
 | npm | `internet` |
 | npx | `internet` |
-| Dart | `internet` |
-| Flutter | `internet` |
 | ShellCheck | `none` |
 | MariaDB client | `moznet` |
 | Redis CLI | `moznet` |

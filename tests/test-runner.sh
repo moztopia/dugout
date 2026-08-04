@@ -20,8 +20,6 @@ cp "${ROOT_DIR}/share/dugout/catalog" "${TEST_DIR}/catalog"
 cat > "${TEST_DIR}/project/.dugout/tool-versions" <<'EOF'
 php 8.4
 node 22
-dart 3.12.2
-flutter 3.44.2
 EOF
 
 cat > "${TEST_DIR}/bin/docker" <<'EOF'
@@ -69,24 +67,6 @@ printf '%s\n' "${output}" |
 
 if printf '%s\n' "${output}" | grep -Eq '<(-p|--publish|--privileged)>'; then
   echo "Runner added a forbidden Docker option." >&2
-  exit 1
-fi
-
-output="$("${ROOT_DIR}/bin/dart" pub get)"
-printf '%s\n' "${output}" |
-  grep -Fqx '<example.test/moztopia/dugout-dart:3.12.2>'
-printf '%s\n' "${output}" |
-  grep -Fqx "<PUB_CACHE=${TEST_DIR}/cache/dugout/dart-3.12.2/pub>"
-
-output="$("${ROOT_DIR}/bin/flutter" test)"
-printf '%s\n' "${output}" |
-  grep -Fqx '<example.test/moztopia/dugout-flutter:3.44.2>'
-printf '%s\n' "${output}" |
-  grep -Fqx "<PUB_CACHE=${TEST_DIR}/cache/dugout/flutter-3.44.2/pub>"
-printf '%s\n' "${output}" |
-  grep -Fqx "<GRADLE_USER_HOME=${TEST_DIR}/cache/dugout/flutter-3.44.2/gradle>"
-if printf '%s\n' "${output}" | grep -Fqx '<--read-only>'; then
-  echo "Runner incorrectly gave Flutter a read-only root filesystem." >&2
   exit 1
 fi
 

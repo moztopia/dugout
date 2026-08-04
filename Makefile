@@ -6,26 +6,20 @@ DUGOUT_PHP_VERSION ?= 8.4
 DUGOUT_COMPOSER_VERSION ?= 2
 DUGOUT_NODE_VERSION ?= 22
 DUGOUT_NPM_VERSION ?= 10
-DUGOUT_DART_VERSION ?= 3.12.2
-DUGOUT_FLUTTER_VERSION ?= 3.44.2
 
 IMAGE_PREFIX ?= $(DUGOUT_IMAGE_PREFIX)
 PHP_VERSION ?= $(DUGOUT_PHP_VERSION)
 COMPOSER_VERSION ?= $(DUGOUT_COMPOSER_VERSION)
 NODE_VERSION ?= $(DUGOUT_NODE_VERSION)
 NPM_VERSION ?= $(DUGOUT_NPM_VERSION)
-DART_VERSION ?= $(DUGOUT_DART_VERSION)
-FLUTTER_VERSION ?= $(DUGOUT_FLUTTER_VERSION)
 
 PHP_IMAGE := $(IMAGE_PREFIX)-php:$(PHP_VERSION)
 COMPOSER_IMAGE := $(IMAGE_PREFIX)-composer:$(COMPOSER_VERSION)-php$(subst .,,$(PHP_VERSION))
 NODE_IMAGE := $(IMAGE_PREFIX)-node:$(NODE_VERSION)
 NPM_IMAGE := $(IMAGE_PREFIX)-npm:$(NPM_VERSION)-node$(NODE_VERSION)
 NPX_IMAGE := $(IMAGE_PREFIX)-npx:$(NPM_VERSION)-node$(NODE_VERSION)
-DART_IMAGE := $(IMAGE_PREFIX)-dart:$(DART_VERSION)
-FLUTTER_IMAGE := $(IMAGE_PREFIX)-flutter:$(FLUTTER_VERSION)
 
-.PHONY: help install uninstall services-up services-stop services-restart services-status build-tools build-php build-composer build-node build-npm build-npx build-dart build-flutter test test-runner test-images test-lifecycle lint
+.PHONY: help install uninstall services-up services-stop services-restart services-status build-tools build-php build-composer build-node build-npm build-npx test test-runner test-images test-lifecycle lint
 
 help:
 	@printf '%s\n' \
@@ -44,9 +38,7 @@ help:
 		'  PHP_VERSION           Default: 8.4' \
 		'  COMPOSER_VERSION      Default: 2' \
 		'  NODE_VERSION          Default: 22' \
-		'  NPM_VERSION           Default: 10' \
-		'  DART_VERSION          Default: 3.12.2' \
-		'  FLUTTER_VERSION       Default: 3.44.2'
+		'  NPM_VERSION           Default: 10'
 
 install:
 	python3 ./scripts/install.py
@@ -66,7 +58,7 @@ services-restart:
 services-status:
 	docker compose ps
 
-build-tools: build-php build-composer build-node build-npm build-npx build-dart build-flutter
+build-tools: build-php build-composer build-node build-npm build-npx
 
 build-php:
 	docker build \
@@ -110,22 +102,6 @@ build-npx:
 		--tag $(NPX_IMAGE) \
 		.
 
-build-dart:
-	docker build \
-		--build-arg DART_VERSION=$(DART_VERSION) \
-		--file tools/dart/Dockerfile \
-		--target dart \
-		--tag $(DART_IMAGE) \
-		.
-
-build-flutter:
-	docker build \
-		--build-arg FLUTTER_VERSION=$(FLUTTER_VERSION) \
-		--file tools/flutter/Dockerfile \
-		--target flutter \
-		--tag $(FLUTTER_IMAGE) \
-		.
-
 test: lint test-lifecycle test-runner test-images
 
 test-lifecycle:
@@ -140,8 +116,6 @@ test-images:
 	COMPOSER_VERSION=$(COMPOSER_VERSION) \
 	NODE_VERSION=$(NODE_VERSION) \
 	NPM_VERSION=$(NPM_VERSION) \
-	DART_VERSION=$(DART_VERSION) \
-	FLUTTER_VERSION=$(FLUTTER_VERSION) \
 	./tests/test-images.sh
 
 lint:

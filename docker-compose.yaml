@@ -71,22 +71,6 @@ services:
     networks:
       - moznet
 
-  minio:
-    image: quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z
-    container_name: do_minio
-    restart: unless-stopped
-    command: server /data --console-address ":9001"
-    environment:
-      MINIO_ROOT_USER: ${DUGOUT_MINIO_ROOT_USER:-minioadmin}
-      MINIO_ROOT_PASSWORD: ${DUGOUT_MINIO_ROOT_PASSWORD:-minioadmin}
-    expose:
-      - "9000"
-      - "9001"
-    volumes:
-      - do_minio_data:/data
-    networks:
-      - moznet
-
   # pihole:
   #   image: pihole/pihole:latest
   #   container_name: do_pihole
@@ -109,7 +93,6 @@ volumes:
   do_portainer_data:
   do_adminer_data:
   do_mailpit_data:
-  do_minio_data:
   # do_pihole_data:
 
 networks:

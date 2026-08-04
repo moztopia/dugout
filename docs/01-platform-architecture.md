@@ -3,7 +3,7 @@
 ## Status
 
 The Dugout service plane exists today. The tool plane is implemented for PHP,
-Composer, Node.js, npm, npx, Dart, and Flutter.
+Composer, Node.js, npm, and npx.
 
 ## Existing service plane
 
@@ -14,7 +14,6 @@ Dugout provides shared infrastructure for local development:
 - Adminer for database administration;
 - Mailpit for captured development email;
 - Dozzle for live container logs;
-- MinIO for local S3-compatible object storage;
 - the globally named Docker network `moznet`.
 
 Pi-hole remains an optional, commented Compose definition and is not part of
@@ -38,7 +37,6 @@ flowchart TB
             adminer["Adminer"]
             mailpit["Mailpit"]
             dozzle["Dozzle"]
-            minio["MinIO"]
         end
 
         moznet[["moznet<br/>Dugout-managed bridge"]]
@@ -54,7 +52,6 @@ flowchart TB
         adminer --> moznet
         mailpit --> moznet
         dozzle --> moznet
-        minio --> moznet
         moznet --> heartsApi
         moznet --> heartsWebsite
         moznet --> others
@@ -167,7 +164,7 @@ That distinction provides several benefits:
 - the host editor remains usable;
 - commands do not depend on VS Code;
 - CI can execute the same images;
-- PHP, Node, Dart, and Flutter versions can be selected per project;
+- PHP and Node versions can be selected per project;
 - a failing tool container does not invalidate the whole workspace;
 - tool upgrades are independent;
 - no permanent workspace container is required;

@@ -3,7 +3,6 @@
         "extends": ".markdownlint.jsonc"
     },
     "ignores": [
-        "packages/api-client-dart/**/*.md",
         "packages/api-client-typescript/**/*.md"
     ]
 }

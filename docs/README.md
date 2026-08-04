@@ -8,8 +8,8 @@ two complementary responsibilities:
 2. provide small, single-purpose tool images that projects invoke through
    ordinary command names.
 
-The tool plane is implemented for PHP, Composer, Node.js, npm, npx, Dart, and
-Flutter. Future tools should follow the same image, runner, security, and
+The tool plane is implemented for PHP, Composer, Node.js, npm, and npx.
+Future tools should follow the same image, runner, security, and
 documentation contracts.
 
 Current release: **1.1.0 — Double**. See the
@@ -21,7 +21,7 @@ Current release: **1.1.0 — Double**. See the
 flowchart LR
     terminal["VS Code integrated terminal"]
     path["PATH begins with<br/>dugout/bin"]
-    shim["POSIX shim<br/>php / composer / node / npm / npx / dart / flutter"]
+    shim["POSIX shim<br/>php / composer / node / npm / npx"]
     runner["dug runner"]
     config["Dugout .env<br/>machine defaults"]
     image["One-command tool image"]
@@ -39,7 +39,7 @@ workspace only places `dugout/bin` before the host's existing `PATH`.
 
 ## Design guarantees
 
-- `php`, `composer`, `node`, `npm`, `npx`, `dart`, and `flutter` resolve to
+- `php`, `composer`, `node`, `npm`, and `npx` resolve to
   Dugout shims in an activated development terminal.
 - Shims are small POSIX `sh` programs, forward every argument unchanged, and
   never fall back to host tools.
@@ -51,7 +51,7 @@ workspace only places `dugout/bin` before the host's existing `PATH`.
   is preserved.
 - Files created in the project use the caller's numeric UID and GID.
 - Containers are ephemeral, drop capabilities, and never publish ports.
-  Their roots are read-only except for Flutter's disposable container layer,
+  Their roots are read-only,
   which its SDK requires for internal metadata.
 - Network access is explicit per tool. Dugout Compose creates `moznet`; the
   runner only uses it when policy permits and never creates it.
@@ -81,13 +81,12 @@ workspace only places `dugout/bin` before the host's existing `PATH`.
 | --- | --- |
 | PHP and Composer images | Implemented |
 | Node.js, npm, and npx images | Implemented |
-| Dart and Flutter images | Implemented |
 | Shared POSIX runner and command shims | Implemented |
 | Root `.env` configuration | Implemented |
 | Optional per-project version manifest | Implemented |
 | Runner and image contract tests | Implemented |
 | Dugout-managed `moznet` lifecycle | Implemented |
-| Mailpit, Dozzle, and MinIO services | Implemented |
+| Mailpit and Dozzle services | Implemented |
 | Digest lock file and registry publication automation | Future |
 | Native Windows wrappers | Future |
 | Persistent editor language-server integration | Tool-specific future work |
@@ -96,7 +95,7 @@ workspace only places `dugout/bin` before the host's existing `PATH`.
 
 **Dugout service**
 : A long-running local infrastructure container managed by Dugout Compose,
-  such as the proxy, Portainer, Adminer, Mailpit, Dozzle, or MinIO.
+  such as the proxy, Portainer, Adminer, Mailpit, or Dozzle.
 
 **Tool image**
 : An immutable image whose public interface is one command.

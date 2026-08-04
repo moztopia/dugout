@@ -1,0 +1,236 @@
+#!/usr/bin/env python3
+import os
+import sys
+import yaml
+
+def load_languages_config():
+    """Load the language configurations from barrel.languages.yaml in the same directory as the script."""
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    languages_path = os.path.join(script_dir, "barrel.languages.yaml")
+    
+    if not os.path.exists(languages_path):
+        # Fallback to default Dart configuration if barrel.languages.yaml is missing
+        return {
+            "dart": {
+                "extension": ".dart",
+                "ignore": [".g.dart"],
+                "template": 'export "{path}";'
+            }
+        }
+    
+    with open(languages_path, "r") as f:
+        return yaml.safe_load(f)
+
+def load_config(path, languages_config):
+    print(f"[INFO] Loading config from {path}")
+    with open(path, "r") as f:
+        config = yaml.safe_load(f)
+    
+    # Extract language and merge with defaults
+    lang_key = config.get("language", "dart")
+    if lang_key not in languages_config:
+        print(f"[WARN] Unknown language '{lang_key}', falling back to 'dart'")
+        lang_key = "dart"
+    
+    lang_info = languages_config[lang_key]
+    config["_lang_ext"] = lang_info["extension"]
+    config["_lang_ignore"] = lang_info.get("ignore", [])
+    config["_lang_template"] = lang_info["template"]
+    
+    # Ensure filename has the correct extension
+    filename = config.get("filename")
+    if filename and not filename.endswith(config["_lang_ext"]):
+        config["filename"] = f"{filename}{config['_lang_ext']}"
+    
+    return config
+
+def delete_old_barrels(root, label, exclude, extension):
+    print(f"[INFO] Cleaning old barrel files under {root}")
+    for dirpath, dirs, files in os.walk(root):
+        # filter excluded dirs
+        dirs[:] = [d for d in dirs if d not in exclude]
+        for file in files:
+            if file.endswith(extension):
+                path = os.path.join(dirpath, file)
+                try:
+                    with open(path, "r") as f:
+                        first_line = f.readline().strip()
+                    if first_line == label:
+                        os.remove(path)
+                        print(f"[DELETE] {path}")
+                except Exception as e:
+                    print(f"[WARN] Could not read {path}: {e}")
+
+def get_barrel_name(folder, depth, config):
+    # Normalize keys to strings for consistent lookup
+    naming = {str(k): v for k, v in config.get("naming", {}).items()}
+    prefix = config.get("prefix", "barrel_")
+    extension = config["_lang_ext"]
+
+    if str(depth) in naming:
+        rule = naming[str(depth)]
+        if rule == "skip":
+            print(f"[SKIP] Depth {depth} in {folder}")
+            return None
+        elif rule == "named":
+            return f"{os.path.basename(folder)}{extension}"
+        elif rule == "auto":
+            return f"{prefix}{os.path.basename(folder)}{extension}"
+    elif "N" in naming and naming["N"] == "auto":
+        return f"{prefix}{os.path.basename(folder)}{extension}"
+    else:
+        print(f"[STOP] No naming rule for depth {depth} in {folder}")
+        return None
+
+def should_ignore(file, config, barrel_name):
+    """Determine if a file should be ignored based on language rules."""
+    extension = config["_lang_ext"]
+    ignore_patterns = config["_lang_ignore"]
+    prefix = config.get("prefix", "barrel_")
+    
+    if not file.endswith(extension):
+        return True
+    
+    if file == barrel_name:
+        return True
+        
+    if file.startswith(prefix):
+        return True
+        
+    for pattern in ignore_patterns:
+        if file.endswith(pattern):
+            return True
+            
+    return False
+
+def generate_exports(folder, depth, config, exclude):
+    barrel_name = get_barrel_name(folder, depth, config)
+    found_barrels = []
+    template = config["_lang_template"]
+
+    if barrel_name:
+        export_file = os.path.join(folder, barrel_name)
+        print(f"[CREATE] {export_file}")
+        exports = [config["label"], ""]
+
+        # Collect all exports to sort them alphabetically
+        content_exports = []
+
+        # Export all valid files in this folder (excluding barrels and ignore patterns)
+        for file in sorted(os.listdir(folder)):
+            if not should_ignore(file, config, barrel_name):
+                # For non-dart, we might want to strip the extension in the export path
+                # but currently we'll keep it as defined in the template.
+                # If template uses {path}, we provide the file name.
+                content_path = file
+                # Standard convention for TS/JS is to omit extension if it's .ts or .js
+                # but the template can handle it.
+                if config.get("language") in ["typescript", "javascript"]:
+                   content_path = os.path.splitext(file)[0]
+                
+                content_exports.append(template.format(path=content_path))
+                print(f"  [EXPORT] {file}")
+
+        # Recurse children and export their barrels
+        for child in sorted(os.listdir(folder)):
+            if child in exclude:
+                print(f"[EXCLUDE] Skipping {child}")
+                continue
+            child_path = os.path.join(folder, child)
+            if os.path.isdir(child_path):
+                child_found = generate_exports(child_path, depth + 1, config, exclude)
+                for b in child_found:
+                    # Strip extension for TS/JS sub-barrels too if needed?
+                    # Dart needs it. TS/JS usually doesn't or uses .js.
+                    barrel_export_path = b
+                    if config.get("language") in ["typescript", "javascript"]:
+                        # We only strip the last extension if it matches our lang extension
+                        if b.endswith(config["_lang_ext"]):
+                            barrel_export_path = b[:-len(config["_lang_ext"])]
+                    
+                    content_exports.append(template.format(path=f"{child}/{barrel_export_path}"))
+                    print(f"  [EXPORT] {child}/{b}")
+
+        exports.extend(sorted(content_exports))
+
+        with open(export_file, "w") as f:
+            f.write("\n".join(exports))
+        
+        found_barrels.append(barrel_name)
+    else:
+        # Depth is skipped, recurse and pass up discovered barrels
+        for child in sorted(os.listdir(folder)):
+            if child in exclude:
+                print(f"[EXCLUDE] Skipping {child}")
+                continue
+            child_path = os.path.join(folder, child)
+            if os.path.isdir(child_path):
+                child_found = generate_exports(child_path, depth + 1, config, exclude)
+                for b in child_found:
+                    found_barrels.append(f"{child}/{b}")
+
+    return found_barrels
+
+def build_barrel(config, config_path):
+    # Root is always the directory where the config file is located
+    root = os.path.dirname(os.path.abspath(config_path))
+    filename = config["filename"]
+    label = config["label"]
+    exclude = config.get("exclude", [])
+    extension = config["_lang_ext"]
+    template = config["_lang_template"]
+
+    delete_old_barrels(root, label, exclude, extension)
+
+    exports = [label, ""]
+    print(f"[TOP] Building {filename} in {root}")
+
+    # Collect all exports to sort them alphabetically
+    content_exports = []
+
+    # Export all valid files in root (excluding top-level barrel and ignore patterns)
+    for file in sorted(os.listdir(root)):
+        if not should_ignore(file, config, filename):
+            content_path = file
+            if config.get("language") in ["typescript", "javascript"]:
+                content_path = os.path.splitext(file)[0]
+            content_exports.append(template.format(path=content_path))
+            print(f"  [TOP EXPORT] {file}")
+
+    # Export child folder barrels (starting recursion at level 2)
+    for child in sorted(os.listdir(root)):
+        if child in exclude:
+            print(f"[EXCLUDE] Skipping {child}")
+            continue
+        child_path = os.path.join(root, child)
+        if os.path.isdir(child_path):
+            child_barrels = generate_exports(child_path, 2, config, exclude)
+            for b in child_barrels:
+                barrel_export_path = b
+                if config.get("language") in ["typescript", "javascript"]:
+                    if b.endswith(config["_lang_ext"]):
+                        barrel_export_path = b[:-len(config["_lang_ext"])]
+                content_exports.append(template.format(path=f"{child}/{barrel_export_path}"))
+                print(f"  [TOP EXPORT] {child}/{b}")
+
+    exports.extend(sorted(content_exports))
+
+    top_file = os.path.join(root, filename)
+    with open(top_file, "w") as f:
+        f.write("\n".join(exports))
+    print(f"[DONE] Wrote {top_file}")
+
+if __name__ == "__main__":
+    if len(sys.argv) == 2:
+        config_path = sys.argv[1]
+    else:
+        config_path = os.path.join(os.getcwd(), "barrel.yaml")
+        
+    if not os.path.exists(config_path):
+        print(f"[ERROR] Barrel configuration file not found at: {config_path}")
+        print("You must execute this command from the directory where barrel.yaml exists, or pass its explicit path.")
+        sys.exit(1)
+
+    languages_config = load_languages_config()
+    config = load_config(config_path, languages_config)
+    build_barrel(config, config_path)

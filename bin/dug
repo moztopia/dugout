@@ -54,14 +54,6 @@ set_config_default() {
       [ -n "${DUGOUT_NPM_VERSION+x}" ] ||
         DUGOUT_NPM_VERSION="${config_value}"
       ;;
-    DUGOUT_DART_VERSION)
-      [ -n "${DUGOUT_DART_VERSION+x}" ] ||
-        DUGOUT_DART_VERSION="${config_value}"
-      ;;
-    DUGOUT_FLUTTER_VERSION)
-      [ -n "${DUGOUT_FLUTTER_VERSION+x}" ] ||
-        DUGOUT_FLUTTER_VERSION="${config_value}"
-      ;;
     DUGOUT_PHP_NETWORK)
       [ -n "${DUGOUT_PHP_NETWORK+x}" ] ||
         DUGOUT_PHP_NETWORK="${config_value}"
@@ -81,26 +73,6 @@ set_config_default() {
     DUGOUT_NPX_NETWORK)
       [ -n "${DUGOUT_NPX_NETWORK+x}" ] ||
         DUGOUT_NPX_NETWORK="${config_value}"
-      ;;
-    DUGOUT_DART_NETWORK)
-      [ -n "${DUGOUT_DART_NETWORK+x}" ] ||
-        DUGOUT_DART_NETWORK="${config_value}"
-      ;;
-    DUGOUT_FLUTTER_NETWORK)
-      [ -n "${DUGOUT_FLUTTER_NETWORK+x}" ] ||
-        DUGOUT_FLUTTER_NETWORK="${config_value}"
-      ;;
-    DUGOUT_FLUTTER_EDITOR_SDK)
-      [ -n "${DUGOUT_FLUTTER_EDITOR_SDK+x}" ] ||
-        DUGOUT_FLUTTER_EDITOR_SDK="${config_value}"
-      ;;
-    DUGOUT_MINIO_ROOT_USER)
-      [ -n "${DUGOUT_MINIO_ROOT_USER+x}" ] ||
-        DUGOUT_MINIO_ROOT_USER="${config_value}"
-      ;;
-    DUGOUT_MINIO_ROOT_PASSWORD)
-      [ -n "${DUGOUT_MINIO_ROOT_PASSWORD+x}" ] ||
-        DUGOUT_MINIO_ROOT_PASSWORD="${config_value}"
       ;;
     DUGOUT_NPM_API_URL | DUGOUT_NPM_EMAIL | DUGOUT_NPM_PASSWORD)
       # Service-seeding configuration is accepted but unused by the tool runner.
@@ -194,15 +166,11 @@ apply_config_defaults() {
   DUGOUT_COMPOSER_VERSION="${DUGOUT_COMPOSER_VERSION:-2}"
   DUGOUT_NODE_VERSION="${DUGOUT_NODE_VERSION:-22}"
   DUGOUT_NPM_VERSION="${DUGOUT_NPM_VERSION:-10}"
-  DUGOUT_DART_VERSION="${DUGOUT_DART_VERSION:-3.12.2}"
-  DUGOUT_FLUTTER_VERSION="${DUGOUT_FLUTTER_VERSION:-3.44.2}"
   DUGOUT_PHP_NETWORK="${DUGOUT_PHP_NETWORK:-moznet}"
   DUGOUT_COMPOSER_NETWORK="${DUGOUT_COMPOSER_NETWORK:-bridge}"
   DUGOUT_NODE_NETWORK="${DUGOUT_NODE_NETWORK:-none}"
   DUGOUT_NPM_NETWORK="${DUGOUT_NPM_NETWORK:-bridge}"
   DUGOUT_NPX_NETWORK="${DUGOUT_NPX_NETWORK:-bridge}"
-  DUGOUT_DART_NETWORK="${DUGOUT_DART_NETWORK:-bridge}"
-  DUGOUT_FLUTTER_NETWORK="${DUGOUT_FLUTTER_NETWORK:-bridge}"
   DUGOUT_DOCKER="${DUGOUT_DOCKER:-docker}"
 
   case "${DUGOUT_IMAGE_PREFIX}" in
@@ -215,29 +183,16 @@ apply_config_defaults() {
   validate_version "DUGOUT_COMPOSER_VERSION" "${DUGOUT_COMPOSER_VERSION}"
   validate_version "DUGOUT_NODE_VERSION" "${DUGOUT_NODE_VERSION}"
   validate_version "DUGOUT_NPM_VERSION" "${DUGOUT_NPM_VERSION}"
-  validate_version "DUGOUT_DART_VERSION" "${DUGOUT_DART_VERSION}"
-  validate_version "DUGOUT_FLUTTER_VERSION" "${DUGOUT_FLUTTER_VERSION}"
   validate_network "DUGOUT_PHP_NETWORK" "${DUGOUT_PHP_NETWORK}"
   validate_network "DUGOUT_COMPOSER_NETWORK" "${DUGOUT_COMPOSER_NETWORK}"
   validate_network "DUGOUT_NODE_NETWORK" "${DUGOUT_NODE_NETWORK}"
   validate_network "DUGOUT_NPM_NETWORK" "${DUGOUT_NPM_NETWORK}"
   validate_network "DUGOUT_NPX_NETWORK" "${DUGOUT_NPX_NETWORK}"
-  validate_network "DUGOUT_DART_NETWORK" "${DUGOUT_DART_NETWORK}"
-  validate_network "DUGOUT_FLUTTER_NETWORK" "${DUGOUT_FLUTTER_NETWORK}"
 
   case "${DUGOUT_DOCKER}" in
     "" | *'
 '*) fail "invalid DUGOUT_DOCKER" ;;
   esac
-
-  if [ -n "${DUGOUT_FLUTTER_EDITOR_SDK:-}" ]; then
-    case "${DUGOUT_FLUTTER_EDITOR_SDK}" in
-      /*) ;;
-      *) fail "DUGOUT_FLUTTER_EDITOR_SDK must be an absolute path" ;;
-    esac
-    [ -d "${DUGOUT_FLUTTER_EDITOR_SDK}/packages/flutter" ] ||
-      fail "invalid DUGOUT_FLUTTER_EDITOR_SDK: ${DUGOUT_FLUTTER_EDITOR_SDK}"
-  fi
 
   IMAGE_PREFIX="${DUGOUT_IMAGE_PREFIX}"
   DOCKER_COMMAND="${DUGOUT_DOCKER}"
@@ -348,8 +303,6 @@ EOF
     node) POLICY_NETWORK="${DUGOUT_NODE_NETWORK}" ;;
     npm) POLICY_NETWORK="${DUGOUT_NPM_NETWORK}" ;;
     npx) POLICY_NETWORK="${DUGOUT_NPX_NETWORK}" ;;
-    dart) POLICY_NETWORK="${DUGOUT_DART_NETWORK}" ;;
-    flutter) POLICY_NETWORK="${DUGOUT_FLUTTER_NETWORK}" ;;
   esac
 }
 
@@ -369,12 +322,6 @@ default_tool_version() {
       ;;
     npm | npx)
       printf '%s-node%s\n' "${DUGOUT_NPM_VERSION}" "${DUGOUT_NODE_VERSION}"
-      ;;
-    dart)
-      printf '%s\n' "${DUGOUT_DART_VERSION}"
-      ;;
-    flutter)
-      printf '%s\n' "${DUGOUT_FLUTTER_VERSION}"
       ;;
     *)
       fail "no machine default version is configured for: ${tool_name}"
@@ -467,47 +414,6 @@ cache_directory() {
   mkdir -p "${CACHE_DIRECTORY}"
 }
 
-detect_flutter_editor_sdk() {
-  FLUTTER_EDITOR_SDK="${DUGOUT_FLUTTER_EDITOR_SDK:-}"
-  [ -z "${FLUTTER_EDITOR_SDK}" ] || return 0
-
-  path_ifs="${IFS}"
-  IFS=':'
-  for path_directory in ${PATH:-}; do
-    [ -n "${path_directory}" ] || path_directory="."
-    candidate="${path_directory}/flutter"
-    [ -x "${candidate}" ] || continue
-    candidate_root="$(
-      CDPATH='' cd "${path_directory}/.." 2>/dev/null && pwd -P
-    )" || continue
-    if [ -d "${candidate_root}/packages/flutter" ]; then
-      FLUTTER_EDITOR_SDK="${candidate_root}"
-      break
-    fi
-  done
-  IFS="${path_ifs}"
-}
-
-restore_flutter_editor_metadata() {
-  [ -n "${FLUTTER_EDITOR_SDK:-}" ] || return 0
-
-  package_config="$(pwd -P)/.dart_tool/package_config.json"
-  [ -f "${package_config}" ] || return 0
-
-  case "${FLUTTER_EDITOR_SDK}" in
-    *[\#\&\\]* | *'
-'*)
-      fail "unsupported character in Flutter editor SDK path"
-      ;;
-  esac
-
-  package_config_tmp="${package_config}.dugout.$$"
-  sed \
-    "s#file:///opt/flutter#file://${FLUTTER_EDITOR_SDK}#g" \
-    "${package_config}" > "${package_config_tmp}"
-  mv "${package_config_tmp}" "${package_config}"
-}
-
 run_tool() {
   tool_name="$1"
   shift
@@ -548,22 +454,6 @@ run_tool() {
           "$@"
         set -- --env "npm_config_cache=/cache" "$@"
         ;;
-      dart)
-        set -- \
-          --mount "type=bind,src=${CACHE_DIRECTORY},dst=${CACHE_DIRECTORY}" \
-          "$@"
-        set -- --env "PUB_CACHE=${CACHE_DIRECTORY}/pub" "$@"
-        ;;
-      flutter)
-        detect_flutter_editor_sdk
-        set -- \
-          --mount "type=bind,src=${CACHE_DIRECTORY},dst=${CACHE_DIRECTORY}" \
-          "$@"
-        set -- \
-          --env "PUB_CACHE=${CACHE_DIRECTORY}/pub" \
-          --env "GRADLE_USER_HOME=${CACHE_DIRECTORY}/gradle" \
-          "$@"
-        ;;
     esac
   fi
 
@@ -571,12 +461,7 @@ run_tool() {
     set -- --tty "$@"
   fi
 
-  # Flutter maintains SDK-local metadata even for ordinary project commands.
-  # Its container is still ephemeral, unprivileged, capability-free, and
-  # removed at exit, but it cannot use Docker's read-only-rootfs option.
-  if [ "${tool_name}" != "flutter" ]; then
-    set -- --read-only "$@"
-  fi
+  set -- --read-only "$@"
 
   set -- \
     "${DOCKER_COMMAND}" run \
@@ -595,10 +480,6 @@ run_tool() {
     "$@"
   tool_status=0
   "$@" || tool_status=$?
-
-  if [ "${tool_name}" = "flutter" ]; then
-    restore_flutter_editor_metadata
-  fi
 
   exit "${tool_status}"
 }

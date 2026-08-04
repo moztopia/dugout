@@ -1,0 +1,26 @@
+dart:
+  extension: ".dart"
+  ignore:
+    - ".g.dart"
+  template: 'export "{path}";'
+
+typescript:
+  extension: ".ts"
+  ignore:
+    - ".d.ts"
+    - ".spec.ts"
+    - ".test.ts"
+    - ".stories.ts"
+  template: 'export * from "./{path}";'
+
+javascript:
+  extension: ".js"
+  ignore:
+    - ".spec.js"
+    - ".test.js"
+  template: 'export * from "./{path}";'
+
+php:
+  extension: ".php"
+  ignore: []
+  template: "require_once '{path}';"

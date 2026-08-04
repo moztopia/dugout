@@ -159,8 +159,6 @@ command -v composer
 command -v node
 command -v npm
 command -v npx
-command -v dart
-command -v flutter
 ```
 
 Every path should end in `dugout/bin/<command>`.
@@ -181,8 +179,6 @@ composer --version
 node --version
 npm --version
 npx --version
-dart --version
-flutter --version
 ```
 
 Check nested-directory mapping:
@@ -203,8 +199,6 @@ sh -c 'command -v php && php --version'
 ```
 
 This proves a child POSIX shell inherits the workspace `PATH`. Project scripts
-that call ordinary `php`, `composer`, `node`, `npm`, `npx`, `dart`, or
-`flutter` names receive the same interception.
 
 Do not change deployable scripts to call `dug` explicitly. Their ordinary
 command names are what allow server-local tools to take over in production.
@@ -221,8 +215,6 @@ composer 2-php84
 node 22
 npm 10-node22
 npx 10-node22
-dart 3.12.2
-flutter 3.44.2
 ```
 
 This manifest is data, not a shim directory. Its location also becomes the

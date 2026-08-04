@@ -27,12 +27,9 @@ projects:
 
   app:
     files_to_find:
-      - "*.dart"
       - "*.yaml"
     exclude:
       - "*/build/*"
-      - "*/.dart_tool/*"
-      - "*/.flutter-plugins/*"
     # root defaults to ./app
     # output defaults to dump_files.app.txt
 

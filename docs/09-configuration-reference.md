@@ -19,7 +19,7 @@ The installer asks for the required local values and creates `.env` with
 private file permissions. Because it is ignored, changing versions or paths
 does not create Git noise or publish machine-specific values.
 
-The file contains local MinIO and Nginx Proxy Manager credentials. Do not put
+The file contains local Nginx Proxy Manager credentials. Do not put
 registry tokens, application credentials, SSH keys, or production secrets in
 it.
 
@@ -118,8 +118,6 @@ ghcr.io/moztopia/dugout
 | `DUGOUT_COMPOSER_VERSION` | `2` | Composer tag |
 | `DUGOUT_NODE_VERSION` | `22` | Node tag and npm/npx runtime suffix |
 | `DUGOUT_NPM_VERSION` | `10` | npm and npx tags |
-| `DUGOUT_DART_VERSION` | `3.12.2` | Dart tag |
-| `DUGOUT_FLUTTER_VERSION` | `3.44.2` | Flutter tag |
 
 Derived tags:
 
@@ -129,8 +127,6 @@ composer  2-php84
 node      22
 npm       10-node22
 npx       10-node22
-dart      3.12.2
-flutter   3.44.2
 ```
 
 After changing a version, build or pull the matching image:
@@ -149,8 +145,6 @@ make build-tools
 | `DUGOUT_NODE_NETWORK` | `none` |
 | `DUGOUT_NPM_NETWORK` | `bridge` |
 | `DUGOUT_NPX_NETWORK` | `bridge` |
-| `DUGOUT_DART_NETWORK` | `bridge` |
-| `DUGOUT_FLUTTER_NETWORK` | `bridge` |
 
 Allowed values:
 
@@ -173,8 +167,6 @@ containers.
 
 | Key | Default | Purpose |
 | --- | --- | --- |
-| `DUGOUT_MINIO_ROOT_USER` | `minioadmin` | MinIO development administrator |
-| `DUGOUT_MINIO_ROOT_PASSWORD` | `minioadmin` | MinIO development password |
 | `DUGOUT_NPM_API_URL` | `http://localhost:81` | Nginx Proxy Manager API used during installation |
 | `DUGOUT_NPM_EMAIL` | None | Nginx Proxy Manager administrator email |
 | `DUGOUT_NPM_PASSWORD` | None | Nginx Proxy Manager administrator password |
@@ -187,7 +179,7 @@ hosts. These credentials must not be committed.
 
 ### `DUGOUT_CACHE_HOME`
 
-Overrides the host cache base for Composer, npm/npx, Dart, and Flutter.
+Overrides the host cache base for Composer, npm/npx.
 Default:
 
 ```text
@@ -199,8 +191,6 @@ The runner creates version-separated children such as:
 ```text
 composer-2-php84
 npm-10-node22
-dart-3.12.2
-flutter-3.44.2
 ```
 
 Use an absolute path. This directory is mounted only for tools whose catalog
@@ -232,15 +222,10 @@ Use this sparingly. Git-root discovery is safer for normal project work. A
 machine-wide value can accidentally mount the wrong amount of source into tool
 containers.
 
-### `DUGOUT_FLUTTER_EDITOR_SDK`
 
-Selects the host Flutter SDK used by editor analysis after containerized
-Flutter commands generate `.dart_tool/package_config.json`. The runner
-normally discovers a real Flutter SDK later in `PATH`, skipping Dugout's
 shim. Set this absolute path when automatic discovery is ambiguous:
 
 ```text
-DUGOUT_FLUTTER_EDITOR_SDK=/home/developer/flutter
 ```
 
 This host SDK is for editor metadata and optional device execution. Android

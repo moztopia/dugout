@@ -10,7 +10,6 @@ services/
 │   └── logs/
 ├── dozzle/
 ├── mailpit/
-├── minio/
 ├── nginx-proxy-manager/
 │   ├── backups/
 │   ├── config/
@@ -47,8 +46,6 @@ internal endpoints:
 | Mailpit | `mailpit:1025` | SMTP capture |
 | Mailpit | `http://mailpit:8025` | Captured-message UI |
 | Dozzle | `http://dozzle:8080` | Container log UI |
-| MinIO | `http://minio:9000` | S3-compatible API |
-| MinIO | `http://minio:9001` | Administration console |
 
 The web interfaces intentionally do not publish host ports. Add proxy hosts in
 Nginx Proxy Manager when browser access is needed. Use the container name and

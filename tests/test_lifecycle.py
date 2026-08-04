@@ -59,7 +59,6 @@ class LifecycleTests(unittest.TestCase):
     def test_valid_answers(self) -> None:
         self.assertEqual(
             lifecycle.validate_answers(
-                "developer",
                 "developer@example.com",
                 "long-password",
             ),
@@ -67,12 +66,11 @@ class LifecycleTests(unittest.TestCase):
         )
 
     def test_invalid_answers_are_explained(self) -> None:
-        errors = lifecycle.validate_answers("x", "invalid", "short")
-        self.assertEqual(len(errors), 3)
+        errors = lifecycle.validate_answers("invalid", "short")
+        self.assertEqual(len(errors), 2)
 
     def test_compose_unsafe_password_is_rejected(self) -> None:
         errors = lifecycle.validate_answers(
-            "developer",
             "developer@example.com",
             "unsafe$password",
         )
@@ -80,13 +78,11 @@ class LifecycleTests(unittest.TestCase):
 
     def test_generated_environment_contains_answers(self) -> None:
         contents = lifecycle.env_contents(
-            "developer",
             "developer@example.com",
             "long-password",
         )
-        self.assertIn("DUGOUT_MINIO_ROOT_USER=developer\n", contents)
         self.assertIn("DUGOUT_NPM_EMAIL=developer@example.com\n", contents)
-        self.assertEqual(contents.count("long-password"), 2)
+        self.assertEqual(contents.count("long-password"), 1)
 
     def test_installation_state_contains_no_credentials(self) -> None:
         state = lifecycle.initial_state(["example/image:1"])

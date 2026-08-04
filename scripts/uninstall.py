@@ -66,7 +66,6 @@ def confirm() -> None:
         "  - all Nginx Proxy Manager hosts, certificates, and configuration;\n"
         "  - all Portainer and Adminer state;\n"
         "  - all captured Mailpit messages;\n"
-        "  - every object and bucket stored in MinIO;\n"
         "  - Dugout tool caches and local credentials;\n"
         "  - Dugout's moznet network.\n"
         "\nThis data cannot be recovered unless you made a separate backup."

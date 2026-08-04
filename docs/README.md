@@ -3,8 +3,8 @@
 Dugout is the local development platform shared by Moztopia projects. It has
 two complementary responsibilities:
 
-1. provide long-lived infrastructure such as DNS, reverse proxying,
-   administration, and the shared `moznet` Docker network;
+1. provide long-lived administration services and the shared `moznet` Docker
+   network, with browser routes exposed to an external proxy;
 2. provide small, single-purpose tool images that projects invoke through
    ordinary command names.
 
@@ -67,7 +67,7 @@ workspace only places `dugout/bin` before the host's existing `PATH`.
 | [Platform architecture](01-platform-architecture.md) | Service plane, tool plane, ownership boundaries, and production separation |
 | [Tool image contract](02-tool-image-contract.md) | Requirements for each single-purpose image |
 | [Runner and command shims](03-runner-and-command-shims.md) | Exact command-resolution and container behavior |
-| [Project and workspace integration](04-project-and-workspace-integration.md) | The one-file Hearts integration and script behavior |
+| [Project and workspace integration](04-project-and-workspace-integration.md) | Generic workspace integration and script behavior |
 | [Initial tool catalog](05-tool-catalog.md) | Tool policies, priorities, and compatibility concerns |
 | [Security and networking](06-security-and-networking.md) | Least privilege, `moznet`, mounts, caches, and Docker access |
 | [Build, test, and publish](07-build-test-and-publish.md) | Image builds, contract tests, CI, and releases |
@@ -95,7 +95,7 @@ workspace only places `dugout/bin` before the host's existing `PATH`.
 
 **Dugout service**
 : A long-running local infrastructure container managed by Dugout Compose,
-  such as the proxy, Portainer, Adminer, Mailpit, or Dozzle.
+  such as Portainer, Adminer, Mailpit, or Dozzle.
 
 **Tool image**
 : An immutable image whose public interface is one command.

@@ -21,7 +21,7 @@ Installation currently supports Linux and macOS development hosts with:
 - GNU Make;
 - Python 3.9 or newer;
 - VS Code for the repository-scoped command environment;
-- free TCP ports `80` and `81`;
+- a running standalone Traefik proxy and its shared external Docker network;
 - enough disk space for the service and tool images.
 
 Start Docker before installing. Dugout checks every requirement and stops
@@ -43,23 +43,22 @@ Run the complete installer from a terminal in the checkout:
 make install
 ```
 
+Start standalone Traefik before installing Dugout. Both repositories default
+to `web-proxy`. To use another external network, set the same value for both
+stacks and install with `TRAEFIK_NETWORK_NAME=<name> make install`.
+
 The installer explains and checks its work before changing the machine. It:
 
-1. verifies Docker, Compose, required host commands, ports `80` and `81`, and
-   Dugout's reserved Docker resource names;
+1. verifies Docker, Compose, required host commands, the shared proxy network,
+   and Dugout's reserved Docker resource names;
 2. stops if Dugout is already or partially installed;
-3. asks for an email address and hidden password;
-4. shows the complete proposed installation and asks for confirmation;
-5. writes local credentials to the ignored `.env` file;
-6. builds all seven command-tool images;
-7. creates `moznet` and starts all five development services;
-8. creates the Nginx Proxy Manager administrator automatically;
-9. creates the standard local proxy hosts;
-10. runs the full validation suite and records the resources owned by the
+3. shows the complete proposed installation and asks for confirmation;
+4. writes local tool configuration to the ignored `.env` file;
+5. builds all five command-tool images;
+6. creates `moznet` and starts all four development services;
+7. exposes browser routes to the standalone proxy through Compose labels;
+8. runs the full validation suite and records the resources owned by the
     installation.
-
-The email address and password configure the Nginx Proxy Manager administrator
-and are stored only in the ignored `.env` file.
 
 ## After installation
 
@@ -85,11 +84,10 @@ The installed browser endpoints are:
 
 | Address | Service |
 | --- | --- |
-| `http://proxy.localhost` | Nginx Proxy Manager |
-| `http://portainer.localhost` | Portainer |
-| `http://adminer.localhost` | Adminer |
-| `http://mailpit.localhost` | Mailpit |
-| `http://dozzle.localhost` | Dozzle |
+| `https://portainer.localhost.moztopia.com` | Portainer |
+| `https://adminer.localhost.moztopia.com` | Adminer |
+| `https://mailpit.localhost.moztopia.com` | Mailpit |
+| `https://dozzle.localhost.moztopia.com` | Dozzle |
 
 ## Already installed
 
@@ -113,7 +111,6 @@ make install
 Uninstalling Dugout permanently deletes everything created by the installer:
 
 - service containers and tool images;
-- Nginx Proxy Manager hosts, certificates, and configuration;
 - Portainer and Adminer state;
 - Mailpit messages;
 - Docker volumes and the `moznet` network;
@@ -140,7 +137,7 @@ Dugout from removing a network that an active development stack still uses.
 
 The installer does not automatically resolve host conflicts.
 
-If a requirement, port, container name, volume, image, or network is
+If a requirement, container name, volume, image, or network is
 unavailable, it reports the exact conflict and stops. Resolve the issue, then
 rerun:
 

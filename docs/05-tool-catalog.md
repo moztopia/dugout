@@ -73,7 +73,6 @@ duplicated maintenance while retaining one obvious command per image.
 Do not use an Alpine npm image to populate `node_modules` for a Debian runtime
 without tests proving native-module compatibility.
 
-
 analysis, tests, and builds. Android Studio, emulators, USB devices, and
 rejected with a clear message; interactive device work stays on the host.
 
@@ -143,8 +142,8 @@ These images contain clients only. Dugout and project Compose own servers.
 Examples:
 
 ```sh
-mariadb --host hearts_database --user hearts --password
-redis-cli -h hearts_cache ping
+mariadb --host project_database --user project --password
+redis-cli -h project_cache ping
 ```
 
 No client publishes a port. Network access is outbound from the ephemeral tool

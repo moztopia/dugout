@@ -15,10 +15,6 @@ dugout/
 │   ├── adminer/
 │   ├── dozzle/
 │   ├── mailpit/
-│   ├── nginx-proxy-manager/
-│   │   ├── backups/        # ignored, machine-local
-│   │   ├── config/         # ignored runtime bind mount
-│   │   └── logs/           # ignored runtime bind mount
 │   ├── pihole/
 │   └── portainer/
 ├── share/
@@ -367,7 +363,6 @@ Track compressed and unpacked size over time. Suggested policy:
 - clean package-manager indexes in the same layer;
 - avoid copying caches into images;
 - never trade runtime compatibility for a cosmetic size reduction.
-
 
 ## CI permissions
 

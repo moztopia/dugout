@@ -181,7 +181,6 @@ flowchart TB
 This preserves the one-command interface without paying the full build and
 registry cost three times.
 
-
 contain Android Studio, an emulator, or device access.
 
 commands, so its unprivileged, ephemeral container is the documented

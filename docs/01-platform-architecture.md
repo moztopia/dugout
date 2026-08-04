@@ -7,9 +7,8 @@ Composer, Node.js, npm, and npx.
 
 ## Existing service plane
 
-Dugout provides shared infrastructure for local development:
+Dugout provides shared services and command tools for local development:
 
-- Nginx Proxy Manager for name-based routing;
 - Portainer for container administration;
 - Adminer for database administration;
 - Mailpit for captured development email;
@@ -19,9 +18,9 @@ Dugout provides shared infrastructure for local development:
 Pi-hole remains an optional, commented Compose definition and is not part of
 the default service set.
 
-Application repositories remain separate Compose projects. During local
-development, each project's `docker-compose.override.yaml` connects selected
-application services to `moznet`.
+The standalone Traefik stack provides label-driven HTTPS routing over a
+separate external network. Dugout consumes that network but does not create,
+configure, or remove the proxy.
 
 Service-specific bind mounts are grouped under `services/<service>/`. Runtime
 configuration, logs, and private backups in that tree are machine-local and
@@ -31,8 +30,9 @@ declared by the root `docker-compose.yaml`.
 ```mermaid
 flowchart TB
     subgraph machine["Local development machine"]
+        proxy["Standalone Traefik"]
+        proxynet[["Configurable external proxy network"]]
         subgraph dugout["Dugout service plane"]
-            proxy["Nginx Proxy Manager"]
             portainer["Portainer"]
             adminer["Adminer"]
             mailpit["Mailpit"]
@@ -42,31 +42,66 @@ flowchart TB
         moznet[["moznet<br/>Dugout-managed bridge"]]
 
         subgraph projects["Project workloads"]
-            heartsApi["Hearts API"]
-            heartsWebsite["Hearts website"]
+            projectApi["Project API"]
+            projectWebsite["Project website"]
             others["Other projects"]
         end
 
-        proxy --> moznet
+        proxy --> proxynet
+        proxynet --> portainer
+        proxynet --> adminer
+        proxynet --> mailpit
+        proxynet --> dozzle
+        proxynet --> projectWebsite
         portainer --> moznet
         adminer --> moznet
         mailpit --> moznet
         dozzle --> moznet
-        moznet --> heartsApi
-        moznet --> heartsWebsite
+        moznet --> projectApi
+        moznet --> projectWebsite
         moznet --> others
     end
 ```
 
-Application services do not publish development ports. Shared routing is
-centralized at Dugout's edge.
+Application services do not need to publish development ports. HTTPS routing
+is provided by the independent proxy stack.
+
+Application projects declare local routes in their
+`docker-compose.override.yaml`. The routed service must join the external
+proxy network and opt in with Traefik labels:
+
+```yaml
+services:
+  web:
+    networks:
+      - web-proxy
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=${TRAEFIK_NETWORK_NAME:-web-proxy}
+      - traefik.http.routers.example.rule=Host(`example.localhost.moztopia.com`)
+      - traefik.http.routers.example.entrypoints=websecure
+      - traefik.http.routers.example.tls=true
+      - traefik.http.services.example.loadbalancer.server.port=8080
+
+networks:
+  web-proxy:
+    external: true
+    name: ${TRAEFIK_NETWORK_NAME:-web-proxy}
+```
+
+Router and service names must be unique across all running Compose projects.
+The explicit network label prevents Traefik from selecting another network
+when an application service belongs to more than one.
+
+Traefik handles HTTP routing but not hostname resolution or project-specific
+OAuth registration. Those concerns belong to the standalone proxy and the
+individual application projects respectively.
 
 ## Ownership boundaries
 
 ### Dugout owns
 
 - creation and lifecycle documentation for `moznet`;
-- shared DNS and reverse-proxy behavior;
 - long-running administration services;
 - source definitions and publication of tool images;
 - the shared runner contract;
@@ -77,6 +112,7 @@ centralized at Dugout's edge.
 
 - its application services;
 - which application services connect to `moznet`;
+- which services and routes connect to the external proxy network;
 - optional project-specific tool-version overrides;
 - tool-specific environment values;
 - editor and workspace configuration;
@@ -86,6 +122,7 @@ centralized at Dugout's edge.
 ### The developer owns
 
 - starting Dugout;
+- starting the standalone reverse proxy;
 - installing and running Docker;
 - choosing whether Dugout shims are active outside the editor;
 - authenticating registry and external-service clients;

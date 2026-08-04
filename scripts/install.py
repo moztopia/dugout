@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-import getpass
+import os
 import shutil
 import sys
 
@@ -19,11 +19,7 @@ from dugout_lifecycle import (
     fail,
     image_exists,
     initial_state,
-    port_available,
     run,
-    seed_proxy_hosts,
-    validate_answers,
-    wait_for_proxy_token,
     write_private_file,
     write_state,
 )
@@ -34,7 +30,7 @@ def require_interactive() -> None:
         fail("make install must run in an interactive terminal.")
 
 
-def preflight() -> list[str]:
+def preflight(traefik_network_name: str) -> list[str]:
     print("Preflight checks")
     print("  Dugout will stop before changing anything when a requirement fails.")
 
@@ -73,13 +69,16 @@ def preflight() -> list[str]:
             "before trying again."
         )
 
-    for port in (80, 81):
-        available, reason = port_available(port)
-        if not available:
-            fail(
-                f"TCP port {port} is unavailable ({reason}). Stop the process "
-                "using it and rerun make install."
-            )
+    proxy_network = run(
+        ["docker", "network", "inspect", traefik_network_name],
+        check=False,
+        capture=True,
+    )
+    if proxy_network.returncode != 0:
+        fail(
+            f"The external proxy network {traefik_network_name} does not exist. "
+            "Start the standalone Traefik stack before installing Dugout."
+        )
 
     images_to_remove = [
         image
@@ -87,45 +86,20 @@ def preflight() -> list[str]:
         if not image_exists(image)
     ]
     print(
-        "  Docker, Compose, required commands, disk space, ports 80/81, "
-        "and resource names are clear."
+        "  Docker, Compose, required commands, disk space, the shared proxy "
+        "network, and resource names are clear."
     )
     return images_to_remove
 
 
-def ask_questions() -> tuple[str, str]:
-    print("\nInstallation questions")
-    print(
-        "\nEmail\n"
-        "  Used to create the Nginx Proxy Manager administrator account."
-    )
-    email = input("  Email: ").strip()
-
-    print(
-        "\nPassword\n"
-        "  Used by the Nginx Proxy Manager administrator account. It is "
-        "stored only in Dugout's ignored .env file."
-    )
-    password = getpass.getpass("  Password: ")
-    confirmation = getpass.getpass("  Confirm password: ")
-    if password != confirmation:
-        fail("The passwords did not match. Nothing was installed.")
-
-    errors = validate_answers(email, password)
-    if errors:
-        fail("\n".join(errors) + "\nNothing was installed.")
-    return email, password
-
-
-def confirm(email: str) -> None:
+def confirm(traefik_network_name: str) -> None:
     print(
         "\nInstallation summary\n"
         f"  Dugout version:       {VERSION}\n"
-        f"  Proxy administrator:  {email}\n"
-        "  Published ports:      80 and 81\n"
         "  Docker network:       moznet\n"
+        f"  External proxy net:   {traefik_network_name}\n"
         "  Tool images:          PHP, Composer, Node, npm, npx\n"
-        "  Services:             Proxy, Portainer, Adminer, Mailpit, Dozzle\n"
+        "  Services:             Portainer, Adminer, Mailpit, Dozzle\n"
         "\nNo commands or shims will be installed globally."
     )
     answer = input("\nInstall Dugout now? [y/N] ").strip().lower()
@@ -135,7 +109,7 @@ def confirm(email: str) -> None:
 
 
 def verify_services() -> None:
-    expected = {"proxy", "portainer", "adminer", "mailpit", "dozzle"}
+    expected = {"portainer", "adminer", "mailpit", "dozzle"}
     result = run(
         [
             "docker",
@@ -157,27 +131,21 @@ def verify_services() -> None:
 
 def install() -> None:
     require_interactive()
-    images_to_remove = preflight()
-    email, password = ask_questions()
-    confirm(email)
+    traefik_network_name = os.environ.get("TRAEFIK_NETWORK_NAME", "web-proxy")
+    images_to_remove = preflight(traefik_network_name)
+    confirm(traefik_network_name)
 
     state = initial_state(images_to_remove)
     write_state(state)
     try:
         print("\nWriting private local configuration...")
-        write_private_file(ENV_FILE, env_contents(email, password))
+        write_private_file(ENV_FILE, env_contents(traefik_network_name))
 
         print("\nBuilding Dugout tool images...")
         run(["make", "build-tools"])
 
         print("\nStarting Dugout services...")
         run(["docker", "compose", "up", "--detach"])
-
-        print("\nWaiting for Nginx Proxy Manager and authenticating...")
-        token = wait_for_proxy_token("http://localhost:81", email, password)
-
-        print("\nCreating standard proxy hosts...")
-        seed_proxy_hosts("http://localhost:81", token)
 
         print("\nVerifying the installation...")
         verify_services()

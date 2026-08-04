@@ -10,10 +10,6 @@ services/
 │   └── logs/
 ├── dozzle/
 ├── mailpit/
-├── nginx-proxy-manager/
-│   ├── backups/
-│   ├── config/
-│   └── logs/
 ├── pihole/
 │   ├── etc-dnsmasq.d/
 │   └── etc-pihole/
@@ -26,10 +22,10 @@ These subdirectories are ignored by Git because they contain runtime output,
 machine-specific configuration, or sensitive backups. Persistent application
 state lives in the named Docker volumes declared by Compose.
 
-Store a private backup under the owning service, for example:
+Store a private backup under the owning stateful service, for example:
 
 ```text
-services/nginx-proxy-manager/backups/database.sqlite
+services/portainer/backups/portainer.db
 ```
 
 Do not commit database files, exported credentials, certificates, logs, or
@@ -37,9 +33,9 @@ other runtime data.
 
 ## Shared development endpoints
 
-All services join the Dugout-managed `moznet` network. Application Compose
-projects treat that globally named network as external and can use these
-internal endpoints:
+All services join the Dugout-managed `moznet` network. Browser-facing services
+also join the external proxy network configured by `TRAEFIK_NETWORK_NAME`.
+Application projects can use these internal `moznet` endpoints:
 
 | Service | Internal endpoint | Purpose |
 | --- | --- | --- |
@@ -47,6 +43,6 @@ internal endpoints:
 | Mailpit | `http://mailpit:8025` | Captured-message UI |
 | Dozzle | `http://dozzle:8080` | Container log UI |
 
-The web interfaces intentionally do not publish host ports. Add proxy hosts in
-Nginx Proxy Manager when browser access is needed. Use the container name and
-internal UI port as the upstream target.
+The web interfaces intentionally do not publish host ports. Browser routes are
+declared with Traefik labels on each service. The routed service joins the
+external proxy network and sets `traefik.docker.network` to its real name.

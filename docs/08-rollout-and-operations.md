@@ -90,16 +90,16 @@ artifacts; they are poor tools for debugging the runner's fundamentals.
 
 ## Phase 3: first project adoption
 
-Choose one active project, initially Hearts. Add Dugout as a named workspace
+Choose one active application project. Add Dugout as a named workspace
 folder and manually prepend its shared `bin` directory to the integrated
 terminal `PATH`.
 
 ```text
-hearts.code-workspace
+project.code-workspace
 ```
 
-Do not copy shims into Hearts. A version manifest is optional and should be
-added only when Hearts intentionally differs from machine defaults.
+Do not copy shims into the application project. A version manifest is optional
+and should be added only when the project intentionally differs from machine defaults.
 
 Start with the low-risk shims. Verify behavior:
 
@@ -163,7 +163,6 @@ Acceptance:
 - correct ownership of `node_modules` and lock files;
 - npx uses the intended project and cache behavior;
 - non-interactive CI output remains clean.
-
 
 Before locking and publication automation, the current implementation also
 

@@ -19,7 +19,7 @@ NODE_IMAGE := $(IMAGE_PREFIX)-node:$(NODE_VERSION)
 NPM_IMAGE := $(IMAGE_PREFIX)-npm:$(NPM_VERSION)-node$(NODE_VERSION)
 NPX_IMAGE := $(IMAGE_PREFIX)-npx:$(NPM_VERSION)-node$(NODE_VERSION)
 
-.PHONY: help install uninstall services-up services-stop services-restart services-status build-tools build-php build-composer build-node build-npm build-npx test test-barrel test-runner test-images test-lifecycle lint
+.PHONY: help install uninstall services-up services-stop services-restart services-status build-tools build-php build-composer build-node build-npm build-npx test test-barrel test-runner test-images test-lifecycle lint lint-shell lint-markdown
 
 help:
 	@printf '%s\n' \
@@ -121,5 +121,10 @@ test-images:
 	NPM_VERSION=$(NPM_VERSION) \
 	./tests/test-images.sh
 
-lint:
+lint: lint-shell lint-markdown
+
+lint-shell:
 	./tests/check-shell.sh
+
+lint-markdown:
+	./bin/npx --yes markdownlint-cli2 '**/*.md'

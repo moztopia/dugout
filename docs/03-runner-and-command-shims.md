@@ -108,8 +108,8 @@ separators.
 Example:
 
 ```text
-host root:       /home/developer/Code/hearts
-host cwd:        /home/developer/Code/hearts/website/src
+host root:       /home/developer/Code/project
+host cwd:        /home/developer/Code/project/website/src
 container root:  /workspace
 container cwd:   /workspace/website/src
 ```
@@ -144,7 +144,7 @@ npx 10-node22
 
 The manifest contains image tags, not shell code. Blank lines and comments are
 allowed; duplicates, malformed rows, missing requested tools, and unsafe tag
-characters fail closed. It is optional: Hearts does not need one for the
+characters fail closed. It is optional: a project does not need one for the
 machine-default configuration.
 
 ## Container invocation
@@ -261,7 +261,7 @@ uses the same Dugout shims as commands typed interactively. Make recipes and
 child processes follow the same rule.
 
 Use project-relative paths for files passed to tools. An absolute host path
-such as `/home/developer/Code/hearts/scripts/report.php` does not exist at that
+such as `/home/developer/Code/project/scripts/report.php` does not exist at that
 location inside the container; the project exists at `/workspace`.
 
 Deployable scripts must use ordinary names like `php` and `node`. They must not

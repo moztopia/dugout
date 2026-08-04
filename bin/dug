@@ -75,7 +75,13 @@ set_config_default() {
         DUGOUT_NPX_NETWORK="${config_value}"
       ;;
     DUGOUT_NPM_API_URL | DUGOUT_NPM_EMAIL | DUGOUT_NPM_PASSWORD)
-      # Service-seeding configuration is accepted but unused by the tool runner.
+      # Accepted for upgrades from Nginx Proxy Manager; Traefik does not use them.
+      ;;
+    DUGOUT_CLOUDFLARE_DNS_API_TOKEN)
+      # Accepted only for upgrades from Dugout-managed Traefik.
+      ;;
+    TRAEFIK_NETWORK_NAME)
+      # Service-plane setting; Docker Compose consumes it directly.
       ;;
     DUGOUT_CACHE_HOME)
       [ -n "${DUGOUT_CACHE_HOME+x}" ] ||

@@ -2,12 +2,20 @@
 
 ## Unreleased
 
+### Added
+
+- configurable attachment to the standalone Traefik external network for all
+  browser-facing services;
+- Markdown linting as part of the canonical `make test` validation.
+
 ### Changed
 
+- reverse-proxy ownership has moved to the standalone Traefik stack; Dugout's
+  browser services now join its configurable external network and declare
+  their routes with Docker Compose labels;
 - `make install` now performs the complete interactive Dugout installation,
   including preflight checks, private configuration, all tool builds, service
-  startup, automatic proxy-administrator creation, proxy seeding, validation,
-  and ownership-state recording;
+  startup, validation, and ownership-state recording;
 - `make uninstall` now reverses the complete installation after an explicit
   data-loss confirmation and refuses to remove `moznet` while another
   container is attached;
@@ -15,6 +23,13 @@
   settings; global runner and shim installation has been removed;
 - the root README is now the canonical installation guide and opens as VS
   Code's startup editor when Dugout is opened directly.
+
+### Removed
+
+- the embedded reverse proxy, automatic certificate/DNS management, and host
+  port ownership from the Dugout lifecycle;
+- obsolete proxy-port availability checks from installation and lifecycle
+  tests.
 
 ## 1.1.0 — Double (2026-07-30)
 

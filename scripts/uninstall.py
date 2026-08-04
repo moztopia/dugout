@@ -64,7 +64,6 @@ def confirm() -> None:
         "\nDANGER: COMPLETE DUGOUT REMOVAL\n"
         "\nThis permanently deletes:\n"
         "  - every Dugout container and locally owned image;\n"
-        "  - all Nginx Proxy Manager hosts, certificates, and configuration;\n"
         "  - all Portainer and Adminer state;\n"
         "  - all captured Mailpit messages;\n"
         "  - Dugout tool caches and local credentials;\n"

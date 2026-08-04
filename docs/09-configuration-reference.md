@@ -15,13 +15,12 @@ Initialize the checkout with:
 make install
 ```
 
-The installer asks for the required local values and creates `.env` with
-private file permissions. Because it is ignored, changing versions or paths
+The installer creates `.env` with private file permissions. Because it is
+ignored, changing versions or paths
 does not create Git noise or publish machine-specific values.
 
-The file contains local Nginx Proxy Manager credentials. Do not put
-registry tokens, application credentials, SSH keys, or production secrets in
-it.
+Do not put registry tokens, application credentials, SSH keys, or production
+secrets in it.
 
 ## Syntax and safety
 
@@ -159,23 +158,14 @@ Compose projects consume that exact external network.
 The runner inspects `moznet` before a `moznet` invocation. It never creates
 the network and never publishes a port; `make services-up` creates it.
 
-## Service-plane settings
-
-These values configure long-running services in `docker-compose.yaml`. The
-runner accepts them in the shared machine `.env` but does not pass them to tool
-containers.
-
-| Key | Default | Purpose |
-| --- | --- | --- |
-| `DUGOUT_NPM_API_URL` | `http://localhost:81` | Nginx Proxy Manager API used during installation |
-| `DUGOUT_NPM_EMAIL` | None | Nginx Proxy Manager administrator email |
-| `DUGOUT_NPM_PASSWORD` | None | Nginx Proxy Manager administrator password |
-
-`make install` asks for these local values, writes them to the ignored `.env`,
-creates the Nginx Proxy Manager administrator, and seeds the standard proxy
-hosts. These credentials must not be committed.
-
 ## Advanced settings
+
+### `TRAEFIK_NETWORK_NAME`
+
+Names the existing external Docker network shared with the standalone Traefik
+proxy. The default is `web-proxy`. The value must match the proxy stack's
+network name. Dugout uses it only for browser-facing services; `moznet` remains
+the fixed tool and internal-service network.
 
 ### `DUGOUT_CACHE_HOME`
 
@@ -222,7 +212,6 @@ Use this sparingly. Git-root discovery is safer for normal project work. A
 machine-wide value can accidentally mount the wrong amount of source into tool
 containers.
 
-
 shim. Set this absolute path when automatic discovery is ambiguous:
 
 ```text
@@ -259,8 +248,9 @@ so keep a one-off build's tag aligned with the runner before invoking it.
 ## Repository-local installation
 
 `make install` is required. It configures the checkout, builds every tool
-image, starts every service, initializes Nginx Proxy Manager, seeds proxy
-hosts, verifies the result, and records the Docker resources it owns.
+image, starts every Dugout service, exposes label-defined routes to the
+standalone proxy, verifies the result, and records the Docker resources it
+owns.
 
 The shims remain in the Dugout checkout and are enabled only by VS Code
 workspace settings. Installation deliberately does not:

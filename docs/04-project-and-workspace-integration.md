@@ -22,7 +22,7 @@ installation command rewrites project or editor files.
 
 ```mermaid
 flowchart LR
-    workspace["hearts.code-workspace"]
+    workspace["project.code-workspace"]
     vscode["New VS Code<br/>integrated terminal"]
     path["PATH"]
     dugout["../dugout/bin"]
@@ -39,7 +39,7 @@ The workspace names both roots and prepends Dugout's `bin` directory:
 {
   "folders": [
     {
-      "name": "hearts",
+      "name": "project",
       "path": "."
     },
     {
@@ -83,7 +83,7 @@ It does not:
 
 ## Verification
 
-From a newly created Hearts terminal:
+From a newly created application-project terminal:
 
 ```sh
 command -v php
@@ -171,7 +171,7 @@ php scripts/check.php
 over:
 
 ```sh
-php /home/developer/Code/hearts/scripts/check.php
+php /home/developer/Code/project/scripts/check.php
 ```
 
 The project is mounted at `/workspace`, not at its host absolute path.
@@ -219,8 +219,8 @@ dug tool php script.php
 ../dugout/bin/php script.php
 ```
 
-Hearts' deployment workflow uses an explicit source allowlist and does not
-copy `hearts.code-workspace`. The workspace file is inert editor
+The deployment workflow should use an explicit source allowlist and not copy
+`project.code-workspace`. The workspace file is inert editor
 configuration, not application runtime configuration.
 
 ## VS Code-only activation
@@ -255,7 +255,7 @@ command -v php
 printf '%s\n' "$PATH"
 ```
 
-Open the `.code-workspace` file, not only the Hearts folder, then create a new
+Open the `.code-workspace` file, not only the application folder, then create a new
 integrated terminal. Confirm the sibling Dugout folder exists at
 `../dugout`.
 

@@ -3,7 +3,6 @@
 
 from __future__ import annotations
 
-import errno
 import json
 import sys
 import tempfile
@@ -50,70 +49,13 @@ class LifecycleTests(unittest.TestCase):
             check=False,
         )
 
-    def test_free_privileged_port_is_available_to_docker(self) -> None:
-        listener = unittest.mock.MagicMock()
-        listener.bind.side_effect = PermissionError(
-            errno.EACCES,
-            "Permission denied",
-        )
-        with (
-            patch.object(lifecycle.socket, "socket", return_value=listener),
-            patch.object(lifecycle.sys, "platform", "linux"),
-            patch.object(
-                lifecycle,
-                "linux_tcp_port_has_listener",
-                return_value=False,
-            ),
-        ):
-            self.assertEqual(lifecycle.port_available(80), (True, ""))
-        self.assertEqual(listener.close.call_count, 2)
-
-    def test_occupied_privileged_port_is_unavailable(self) -> None:
-        listener = unittest.mock.MagicMock()
-        listener.bind.side_effect = PermissionError(
-            errno.EACCES,
-            "Permission denied",
-        )
-        with (
-            patch.object(lifecycle.socket, "socket", return_value=listener),
-            patch.object(lifecycle.sys, "platform", "linux"),
-            patch.object(
-                lifecycle,
-                "linux_tcp_port_has_listener",
-                return_value=True,
-            ),
-        ):
-            available, reason = lifecycle.port_available(80)
-        self.assertFalse(available)
-        self.assertIn("already using", reason)
-
-    def test_valid_answers(self) -> None:
-        self.assertEqual(
-            lifecycle.validate_answers(
-                "developer@example.com",
-                "long-password",
-            ),
-            [],
-        )
-
-    def test_invalid_answers_are_explained(self) -> None:
-        errors = lifecycle.validate_answers("invalid", "short")
-        self.assertEqual(len(errors), 2)
-
-    def test_compose_unsafe_password_is_rejected(self) -> None:
-        errors = lifecycle.validate_answers(
-            "developer@example.com",
-            "unsafe$password",
-        )
-        self.assertTrue(any("symbols" in error for error in errors))
-
-    def test_generated_environment_contains_answers(self) -> None:
-        contents = lifecycle.env_contents(
-            "developer@example.com",
-            "long-password",
-        )
-        self.assertIn("DUGOUT_NPM_EMAIL=developer@example.com\n", contents)
-        self.assertEqual(contents.count("long-password"), 1)
+    def test_generated_environment_has_no_proxy_credentials(self) -> None:
+        contents = lifecycle.env_contents()
+        self.assertNotIn("DUGOUT_NPM_API_URL", contents)
+        self.assertNotIn("DUGOUT_NPM_EMAIL", contents)
+        self.assertNotIn("DUGOUT_NPM_PASSWORD", contents)
+        self.assertIn("DUGOUT_IMAGE_PREFIX=moztopia/dugout\n", contents)
+        self.assertIn("TRAEFIK_NETWORK_NAME=web-proxy\n", contents)
 
     def test_installation_state_contains_no_credentials(self) -> None:
         state = lifecycle.initial_state(["example/image:1"])
@@ -151,6 +93,19 @@ class LifecycleTests(unittest.TestCase):
                 with self.assertRaises(lifecycle.LifecycleError):
                     lifecycle.load_state()
 
+    def test_legacy_proxy_state_is_accepted_for_uninstall(self) -> None:
+        state = lifecycle.initial_state([])
+        state["volumes"] = list(lifecycle.LEGACY_PROXY_VOLUMES)
+        state["images"] = list(lifecycle.LEGACY_PROXY_IMAGES)
+        state["runtime_paths"] = [
+            str(path) for path in lifecycle.LEGACY_PROXY_RUNTIME_PATHS
+        ]
+        with tempfile.TemporaryDirectory() as directory:
+            state_file = Path(directory) / "state.json"
+            state_file.write_text(json.dumps(state), encoding="utf-8")
+            with patch.object(lifecycle, "STATE_FILE", state_file):
+                self.assertEqual(lifecycle.load_state()["images"], state["images"])
+
     def test_foreign_network_containers_are_detected(self) -> None:
         network_data = {
             "known": {"Name": "do_proxy"},
@@ -167,11 +122,20 @@ class LifecycleTests(unittest.TestCase):
                 ["application_api"],
             )
 
-    def test_compose_has_fixed_project_and_automatic_admin(self) -> None:
+    def test_compose_uses_standalone_traefik_network_and_routes(self) -> None:
         compose = (ROOT / "docker-compose.yaml").read_text(encoding="utf-8")
         self.assertTrue(compose.startswith("name: dugout\n"))
-        self.assertIn("INITIAL_ADMIN_EMAIL: ${DUGOUT_NPM_EMAIL}", compose)
-        self.assertIn("INITIAL_ADMIN_PASSWORD: ${DUGOUT_NPM_PASSWORD}", compose)
+        self.assertNotIn("image: traefik:", compose)
+        self.assertNotIn("container_name: do_proxy", compose)
+        self.assertIn("traefik.docker.network=${TRAEFIK_NETWORK_NAME:-web-proxy}", compose)
+        self.assertIn("name: ${TRAEFIK_NETWORK_NAME:-web-proxy}", compose)
+        for hostname in (
+            "portainer.localhost.moztopia.com",
+            "adminer.localhost.moztopia.com",
+            "mailpit.localhost.moztopia.com",
+            "dozzle.localhost.moztopia.com",
+        ):
+            self.assertIn(f"Host(`{hostname}`)", compose)
 
     def test_vscode_activation_is_repository_local(self) -> None:
         settings = json.loads(

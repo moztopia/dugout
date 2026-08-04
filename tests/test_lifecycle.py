@@ -92,6 +92,24 @@ class LifecycleTests(unittest.TestCase):
         self.assertEqual(state["status"], "installing")
         self.assertEqual(state["schema"], 1)
 
+    def test_reusable_tool_artifacts_are_not_an_existing_installation(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            cache = root / "npm-10-node22"
+            cache.mkdir()
+            (cache / "cached-package").write_text("data", encoding="utf-8")
+            with (
+                patch.object(lifecycle, "STATE_FILE", root / "state.json"),
+                patch.object(lifecycle, "ENV_FILE", root / ".env"),
+                patch.object(lifecycle, "CONTAINERS", ()),
+                patch.object(lifecycle, "VOLUMES", ()),
+                patch.object(lifecycle, "TOOL_IMAGES", ("dugout/tool:1",)),
+                patch.object(lifecycle, "RUNTIME_PATHS", ()),
+                patch.object(lifecycle, "cache_paths", return_value=[str(cache)]),
+                patch.object(lifecycle, "docker_object_exists", return_value=False),
+            ):
+                self.assertEqual(lifecycle.existing_installation_resources(), [])
+
     def test_unsafe_state_is_rejected(self) -> None:
         state = lifecycle.initial_state(["example/image:1"])
         state["images"] = ["unrelated/private-image:latest"]

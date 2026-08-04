@@ -120,13 +120,11 @@ def existing_installation_resources() -> list[str]:
             found.append(f"volume: {volume}")
     if docker_object_exists(["network", "inspect", NETWORK]):
         found.append(f"network: {NETWORK}")
-    for image in TOOL_IMAGES:
-        if image_exists(image):
-            found.append(f"tool image: {image}")
-    for path_value in cache_paths():
-        path = Path(path_value)
-        if path.exists() and (not path.is_dir() or any(path.iterdir())):
-            found.append(f"tool cache: {path}")
+    # Tool images and caches can outlive a checkout (for example, after
+    # `docker compose down -v` followed by deleting the repository). They are
+    # reusable, non-authoritative data and do not by themselves indicate an
+    # existing or partial installation. A recorded installation still owns
+    # and removes the ones it created through its state file.
     for path in RUNTIME_PATHS:
         if path.exists() and (not path.is_dir() or any(path.iterdir())):
             found.append(f"runtime data: {path.relative_to(ROOT)}")

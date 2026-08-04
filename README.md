@@ -95,8 +95,10 @@ The installed browser endpoints are:
 
 `make install` deliberately refuses to modify an existing or partial
 installation. It checks its private state file together with the actual
-containers, volumes, images, runtime files, configuration, and `moznet`
-network.
+containers, volumes, runtime files, configuration, and `moznet` network.
+Reusable tool images and package-manager caches do not block installation, so
+a fresh checkout recovers cleanly after `docker compose down -v` and removal
+of the previous checkout.
 
 If installation previously stopped partway through, remove the recorded
 partial installation before trying again:

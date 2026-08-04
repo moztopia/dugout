@@ -5,6 +5,10 @@ services:
     image: portainer/portainer-ce:2.39.2
     container_name: do_portainer
     restart: unless-stopped
+    deploy:
+      replicas: ${DUGOUT_PORTAINER_ENABLED:-1}
+    ports:
+      - "127.0.0.1:${DUGOUT_PORTAINER_PORT:-9000}:9000"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./services/portainer/config:/config
@@ -12,75 +16,51 @@ services:
       - do_portainer_data:/data
     networks:
       - moznet
-      - web-proxy
-    labels:
-      - traefik.enable=true
-      - traefik.docker.network=${TRAEFIK_NETWORK_NAME:-web-proxy}
-      - traefik.http.routers.portainer.rule=Host(`portainer.localhost.moztopia.com`)
-      - traefik.http.routers.portainer.entrypoints=websecure
-      - traefik.http.routers.portainer.tls=true
-      - traefik.http.services.portainer.loadbalancer.server.port=9000
 
   adminer:
     image: adminer:5.4.2
     container_name: do_adminer
     restart: unless-stopped
+    deploy:
+      replicas: ${DUGOUT_ADMINER_ENABLED:-1}
+    ports:
+      - "127.0.0.1:${DUGOUT_ADMINER_PORT:-8080}:8080"
     volumes:
       - ./services/adminer/config:/config
       - ./services/adminer/logs:/logs
       - do_adminer_data:/var/www/html
     networks:
       - moznet
-      - web-proxy
-    labels:
-      - traefik.enable=true
-      - traefik.docker.network=${TRAEFIK_NETWORK_NAME:-web-proxy}
-      - traefik.http.routers.adminer.rule=Host(`adminer.localhost.moztopia.com`)
-      - traefik.http.routers.adminer.entrypoints=websecure
-      - traefik.http.routers.adminer.tls=true
-      - traefik.http.services.adminer.loadbalancer.server.port=8080
 
   mailpit:
     image: axllent/mailpit:v1.30.6
     container_name: do_mailpit
     restart: unless-stopped
+    deploy:
+      replicas: ${DUGOUT_MAILPIT_ENABLED:-1}
     environment:
       MP_DATABASE: /data/mailpit.db
       MP_MAX_MESSAGES: 5000
-    expose:
-      - "1025"
-      - "8025"
+    ports:
+      - "127.0.0.1:${DUGOUT_MAILPIT_SMTP_PORT:-1025}:1025"
+      - "127.0.0.1:${DUGOUT_MAILPIT_HTTP_PORT:-8025}:8025"
     volumes:
       - do_mailpit_data:/data
     networks:
       - moznet
-      - web-proxy
-    labels:
-      - traefik.enable=true
-      - traefik.docker.network=${TRAEFIK_NETWORK_NAME:-web-proxy}
-      - traefik.http.routers.mailpit.rule=Host(`mailpit.localhost.moztopia.com`)
-      - traefik.http.routers.mailpit.entrypoints=websecure
-      - traefik.http.routers.mailpit.tls=true
-      - traefik.http.services.mailpit.loadbalancer.server.port=8025
 
   dozzle:
     image: amir20/dozzle:v10.6.13
     container_name: do_dozzle
     restart: unless-stopped
-    expose:
-      - "8080"
+    deploy:
+      replicas: ${DUGOUT_DOZZLE_ENABLED:-1}
+    ports:
+      - "127.0.0.1:${DUGOUT_DOZZLE_PORT:-9999}:8080"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     networks:
       - moznet
-      - web-proxy
-    labels:
-      - traefik.enable=true
-      - traefik.docker.network=${TRAEFIK_NETWORK_NAME:-web-proxy}
-      - traefik.http.routers.dozzle.rule=Host(`dozzle.localhost.moztopia.com`)
-      - traefik.http.routers.dozzle.entrypoints=websecure
-      - traefik.http.routers.dozzle.tls=true
-      - traefik.http.services.dozzle.loadbalancer.server.port=8080
 
   # pihole:
   #   image: pihole/pihole:latest
@@ -108,6 +88,3 @@ networks:
   moznet:
     name: moznet
     driver: bridge
-  web-proxy:
-    external: true
-    name: ${TRAEFIK_NETWORK_NAME:-web-proxy}

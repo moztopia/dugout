@@ -9,7 +9,7 @@ dependency.
 
 Workspace integration is always manual.
 
-Neither `make install` nor any build command will create, parse, or rewrite:
+Neither `make up` nor any build command will create, parse, or rewrite:
 
 - a project's `.code-workspace` file;
 - `.vscode/settings.json`;
@@ -36,7 +36,8 @@ Validate Dugout first:
 
 ```sh
 cd /path/to/dugout
-make install
+cp .env.example .env
+make up
 ./bin/dug doctor
 ```
 

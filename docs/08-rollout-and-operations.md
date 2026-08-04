@@ -415,7 +415,7 @@ the tool runner:
 
 ```sh
 cd /path/to/dugout
-make services-up
+make up
 ```
 
 ### Tool needs a credential

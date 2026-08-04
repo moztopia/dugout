@@ -154,7 +154,7 @@ docker network inspect moznet
 ```
 
 If unavailable, it fails with instructions to start or repair Dugout. It must
-not create the network; Dugout Compose creates it through `make services-up`.
+not create the network; Dugout Compose creates it through `make up`.
 
 ### Docker API
 

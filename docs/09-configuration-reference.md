@@ -12,11 +12,10 @@ Dugout ships two root configuration files:
 Initialize the checkout with:
 
 ```sh
-make install
+cp .env.example .env
 ```
 
-The installer creates `.env` with private file permissions. Because it is
-ignored, changing versions or paths
+The copied `.env` is ignored, so changing versions, ports, or service switches
 does not create Git noise or publish machine-specific values.
 
 Do not put registry tokens, application credentials, SSH keys, or production
@@ -156,16 +155,20 @@ The name is a platform invariant and is not configurable because application
 Compose projects consume that exact external network.
 
 The runner inspects `moznet` before a `moznet` invocation. It never creates
-the network and never publishes a port; `make services-up` creates it.
+the network and never publishes a port; `make up` creates it.
 
 ## Advanced settings
 
-### `TRAEFIK_NETWORK_NAME`
+## Utility settings
 
-Names the existing external Docker network shared with the standalone Traefik
-proxy. The default is `web-proxy`. The value must match the proxy stack's
-network name. Dugout uses it only for browser-facing services; `moznet` remains
-the fixed tool and internal-service network.
+Each utility has a `DUGOUT_<SERVICE>_ENABLED` setting. Use `1` to run it or `0`
+to disable it, then run `make up` to reconcile the stack. The defaults enable
+Portainer, Adminer, Mailpit, and Dozzle.
+
+The `DUGOUT_<SERVICE>_PORT` settings publish each web interface on
+`127.0.0.1`. Mailpit has separate `SMTP_PORT` and `HTTP_PORT` settings. Change
+a port when its default is already occupied. Dugout does not use a reverse
+proxy or an external proxy network.
 
 ### `DUGOUT_CACHE_HOME`
 
@@ -234,8 +237,7 @@ though its format is data-only.
 
 ## Build integration
 
-The installer builds the image versions selected for the release. Maintainers
-can use explicit Make variables for one-off development builds:
+Maintainers can use explicit Make variables for one-off development builds:
 
 ```sh
 make build-tools
@@ -245,12 +247,10 @@ PHP_VERSION=8.5 make build-php
 The runner uses its effective `DUGOUT_*` configuration when selecting images,
 so keep a one-off build's tag aligned with the runner before invoking it.
 
-## Repository-local installation
+## Repository-local setup
 
-`make install` is required. It configures the checkout, builds every tool
-image, starts every Dugout service, exposes label-defined routes to the
-standalone proxy, verifies the result, and records the Docker resources it
-owns.
+There is no installation step. Copy `.env.example` to `.env`, review the
+service switches and ports, and run `make up`.
 
 The shims remain in the Dugout checkout and are enabled only by VS Code
 workspace settings. Installation deliberately does not:
@@ -261,8 +261,9 @@ workspace settings. Installation deliberately does not:
 - copy commands into `~/.local/bin`;
 - add `.dugout` files to a project.
 
-`make uninstall` reverses the installation after a destructive-data warning.
-It refuses to remove `moznet` while a non-Dugout container is attached.
+`make down` removes containers and the network while preserving named volumes.
+Use `docker compose down --volumes` only when you also intend to delete
+persistent utility data.
 
 ## Change checklist
 

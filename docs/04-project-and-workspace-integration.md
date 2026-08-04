@@ -266,7 +266,7 @@ dug doctor
 docker info
 ```
 
-Start Docker and run `make services-up` in Dugout. If PHP reports that
+Start Docker and run `make up` in Dugout. If PHP reports that
 `moznet` is absent, start or repair Dugout's service plane; the runner
 deliberately does not create platform networks.
 

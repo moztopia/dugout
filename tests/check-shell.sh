@@ -21,12 +21,7 @@ for script do
   sh -n "${script}"
 done
 
-python3 -m py_compile \
-  scripts/dugout_lifecycle.py \
-  scripts/install.py \
-  scripts/uninstall.py \
-  tools/barrel/barrel \
-  tests/test_lifecycle.py
+python3 -m py_compile tools/barrel/barrel
 
 if command -v shellcheck >/dev/null 2>&1; then
   for script do

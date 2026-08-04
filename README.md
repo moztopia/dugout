@@ -1,74 +1,84 @@
-# Install Dugout
+# Dugout
 
-Dugout is a standalone local development environment. It installs a complete
-service plane and builds isolated command-tool containers for PHP, Composer,
-Node.js, npm, and npx.
-
-**Dugout must be installed before it can be used.**
-
-The installation lives in this Git checkout. Dugout never installs commands
-globally, never changes a shell profile, and never adds anything to
-`~/.local/bin`. Its command shims are active only in new VS Code integrated
-terminals opened for this repository.
+Dugout provides optional local web utilities and repository-local container
+wrappers for PHP, Composer, Node.js, npm, and npx. There is no installer and no
+reverse proxy.
 
 ## Requirements
 
-Installation currently supports Linux and macOS development hosts with:
+You need:
 
-- Docker Engine or Docker Desktop;
-- the Docker Compose plugin;
-- Git;
+- Docker Engine or Docker Desktop, with the Docker Compose plugin;
 - GNU Make;
-- Python 3.9 or newer;
-- VS Code for the repository-scoped command environment;
-- a running standalone Traefik proxy and its shared external Docker network;
-- enough disk space for the service and tool images.
+- Git and VS Code only if you want the repository-local command wrappers.
 
-Start Docker before installing. Dugout checks every requirement and stops
-without making changes when it finds a conflict.
-
-## Install
-
-Clone and open Dugout:
+Start Docker, then prepare the configuration:
 
 ```sh
 git clone https://github.com/mozrin/dugout.git
 cd dugout
-code .
+cp .env.example .env
 ```
 
-Run the complete installer from a terminal in the checkout:
+Review `.env` before starting. The required decisions are:
+
+- set each `DUGOUT_<SERVICE>_ENABLED` value to `1` or `0`;
+- change any `DUGOUT_<SERVICE>_PORT` that conflicts with another local service;
+- change tool image versions only when you intentionally want different tool
+  images.
+
+Start the enabled utilities:
 
 ```sh
-make install
+make up
 ```
 
-Start standalone Traefik before installing Dugout. Both repositories default
-to `web-proxy`. To use another external network, set the same value for both
-stacks and install with `TRAEFIK_NETWORK_NAME=<name> make install`.
+Compose creates the shared `moznet` Docker network automatically. It also
+pulls the utility images when they are not already present.
 
-The installer explains and checks its work before changing the machine. It:
+## Utilities
 
-1. verifies Docker, Compose, required host commands, the shared proxy network,
-   and Dugout's reserved Docker resource names;
-2. stops if Dugout is already or partially installed;
-3. shows the complete proposed installation and asks for confirmation;
-4. writes local tool configuration to the ignored `.env` file;
-5. builds all five command-tool images;
-6. creates `moznet` and starts all four development services;
-7. exposes browser routes to the standalone proxy through Compose labels;
-8. runs the full validation suite and records the resources owned by the
-    installation.
+All browser and SMTP ports bind only to `127.0.0.1`; Dugout has no proxy,
+public routes, TLS configuration, or external proxy network.
 
-## After installation
+| Utility | Default local endpoint | Enable setting |
+| --- | --- | --- |
+| Portainer | `http://localhost:9000` | `DUGOUT_PORTAINER_ENABLED` |
+| Adminer | `http://localhost:8080` | `DUGOUT_ADMINER_ENABLED` |
+| Mailpit UI | `http://localhost:8025` | `DUGOUT_MAILPIT_ENABLED` |
+| Mailpit SMTP | `localhost:1025` | `DUGOUT_MAILPIT_ENABLED` |
+| Dozzle | `http://localhost:9999` | `DUGOUT_DOZZLE_ENABLED` |
 
-Reopen this repository in VS Code and create a new integrated terminal.
-Existing terminals cannot receive an updated workspace environment.
+Set an enable value to `0` and run `make up` again. Compose removes that
+service's container while preserving its named volume. Set it back to `1` and
+run `make up` to restore it.
 
-Verify the installation:
+Services on `moznet` remain reachable to application containers by Compose
+service name, such as `mailpit:1025`.
+
+## Commands
 
 ```sh
-dug version
+make up       # apply .env and start enabled utilities
+make status   # show utility status
+make stop     # stop utilities without removing containers
+make restart  # restart existing utility containers
+make down     # remove containers and network, preserving named volumes
+```
+
+To delete persistent utility data as well, explicitly run
+`docker compose down --volumes`.
+
+## Command wrappers
+
+Open Dugout in VS Code and create a new integrated terminal to use its local
+`php`, `composer`, `node`, `npm`, and `npx` wrappers. They read tool versions
+and network policies from `.env`; they do not install host commands or modify
+your shell profile.
+
+Verify them with:
+
+```sh
 dug doctor
 php --version
 composer --version
@@ -77,73 +87,5 @@ npm --version
 npx --version
 ```
 
-These names resolve to `dugout/bin` only inside this VS Code workspace.
-Terminals elsewhere continue to use their normal host `PATH`.
-
-The installed browser endpoints are:
-
-| Address | Service |
-| --- | --- |
-| `https://portainer.localhost.moztopia.com` | Portainer |
-| `https://adminer.localhost.moztopia.com` | Adminer |
-| `https://mailpit.localhost.moztopia.com` | Mailpit |
-| `https://dozzle.localhost.moztopia.com` | Dozzle |
-
-## Already installed
-
-`make install` deliberately refuses to modify an existing or partial
-installation. It checks its private state file together with the actual
-containers, volumes, runtime files, configuration, and `moznet` network.
-Reusable tool images and package-manager caches do not block installation, so
-a fresh checkout recovers cleanly after `docker compose down -v` and removal
-of the previous checkout.
-
-If installation previously stopped partway through, remove the recorded
-partial installation before trying again:
-
-```sh
-make uninstall
-make install
-```
-
-## Uninstall
-
-Uninstalling Dugout permanently deletes everything created by the installer:
-
-- service containers and tool images;
-- Portainer and Adminer state;
-- Mailpit messages;
-- Docker volumes and the `moznet` network;
-- tool caches;
-- local configuration and credentials;
-- installation state.
-
-The Git checkout and committed source files remain.
-
-Run:
-
-```sh
-make uninstall
-```
-
-The uninstaller displays the complete data-loss warning and requires the exact
-confirmation phrase `DELETE DUGOUT`.
-
-It refuses to proceed when any non-Dugout container is attached to `moznet`.
-Disconnect those containers first, then rerun the command. This prevents
-Dugout from removing a network that an active development stack still uses.
-
-## Troubleshooting installation
-
-The installer does not automatically resolve host conflicts.
-
-If a requirement, container name, volume, image, or network is
-unavailable, it reports the exact conflict and stops. Resolve the issue, then
-rerun:
-
-```sh
-make install
-```
-
-For architecture and operational details after installation, see the
+For maintainer and architecture details, see the
 [documentation index](docs/README.md).

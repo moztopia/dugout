@@ -4,7 +4,7 @@ Dugout is the local development platform shared by Moztopia projects. It has
 two complementary responsibilities:
 
 1. provide long-lived administration services and the shared `moznet` Docker
-   network, with browser routes exposed to an external proxy;
+   network, with web utilities exposed on configurable localhost ports;
 2. provide small, single-purpose tool images that projects invoke through
    ordinary command names.
 

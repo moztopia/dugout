@@ -33,9 +33,8 @@ other runtime data.
 
 ## Shared development endpoints
 
-All services join the Dugout-managed `moznet` network. Browser-facing services
-also join the external proxy network configured by `TRAEFIK_NETWORK_NAME`.
-Application projects can use these internal `moznet` endpoints:
+All enabled services join the Dugout-managed `moznet` network. Application
+projects can use these internal endpoints:
 
 | Service | Internal endpoint | Purpose |
 | --- | --- | --- |
@@ -43,6 +42,5 @@ Application projects can use these internal `moznet` endpoints:
 | Mailpit | `http://mailpit:8025` | Captured-message UI |
 | Dozzle | `http://dozzle:8080` | Container log UI |
 
-The web interfaces intentionally do not publish host ports. Browser routes are
-declared with Traefik labels on each service. The routed service joins the
-external proxy network and sets `traefik.docker.network` to its real name.
+The web interfaces publish configurable ports on `127.0.0.1` only. See the
+root `.env.example` for enable switches and port settings.

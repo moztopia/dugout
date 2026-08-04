@@ -18,9 +18,8 @@ Dugout provides shared services and command tools for local development:
 Pi-hole remains an optional, commented Compose definition and is not part of
 the default service set.
 
-The standalone Traefik stack provides label-driven HTTPS routing over a
-separate external network. Dugout consumes that network but does not create,
-configure, or remove the proxy.
+Web utilities publish configurable ports on the host loopback interface.
+Dugout has no reverse proxy, TLS routing, or external proxy network.
 
 Service-specific bind mounts are grouped under `services/<service>/`. Runtime
 configuration, logs, and private backups in that tree are machine-local and
@@ -30,8 +29,6 @@ declared by the root `docker-compose.yaml`.
 ```mermaid
 flowchart TB
     subgraph machine["Local development machine"]
-        proxy["Standalone Traefik"]
-        proxynet[["Configurable external proxy network"]]
         subgraph dugout["Dugout service plane"]
             portainer["Portainer"]
             adminer["Adminer"]
@@ -47,12 +44,6 @@ flowchart TB
             others["Other projects"]
         end
 
-        proxy --> proxynet
-        proxynet --> portainer
-        proxynet --> adminer
-        proxynet --> mailpit
-        proxynet --> dozzle
-        proxynet --> projectWebsite
         portainer --> moznet
         adminer --> moznet
         mailpit --> moznet
@@ -63,39 +54,9 @@ flowchart TB
     end
 ```
 
-Application services do not need to publish development ports. HTTPS routing
-is provided by the independent proxy stack.
-
-Application projects declare local routes in their
-`docker-compose.override.yaml`. The routed service must join the external
-proxy network and opt in with Traefik labels:
-
-```yaml
-services:
-  web:
-    networks:
-      - web-proxy
-    labels:
-      - traefik.enable=true
-      - traefik.docker.network=${TRAEFIK_NETWORK_NAME:-web-proxy}
-      - traefik.http.routers.example.rule=Host(`example.localhost.moztopia.com`)
-      - traefik.http.routers.example.entrypoints=websecure
-      - traefik.http.routers.example.tls=true
-      - traefik.http.services.example.loadbalancer.server.port=8080
-
-networks:
-  web-proxy:
-    external: true
-    name: ${TRAEFIK_NETWORK_NAME:-web-proxy}
-```
-
-Router and service names must be unique across all running Compose projects.
-The explicit network label prevents Traefik from selecting another network
-when an application service belongs to more than one.
-
-Traefik handles HTTP routing but not hostname resolution or project-specific
-OAuth registration. Those concerns belong to the standalone proxy and the
-individual application projects respectively.
+Application projects may join `moznet` when they need an internal Dugout
+service such as Mailpit. Host access to a utility uses its localhost port from
+`.env`.
 
 ## Ownership boundaries
 
@@ -112,7 +73,7 @@ individual application projects respectively.
 
 - its application services;
 - which application services connect to `moznet`;
-- which services and routes connect to the external proxy network;
+- which services connect to `moznet`;
 - optional project-specific tool-version overrides;
 - tool-specific environment values;
 - editor and workspace configuration;
@@ -122,7 +83,6 @@ individual application projects respectively.
 ### The developer owns
 
 - starting Dugout;
-- starting the standalone reverse proxy;
 - installing and running Docker;
 - choosing whether Dugout shims are active outside the editor;
 - authenticating registry and external-service clients;
@@ -280,7 +240,7 @@ metadata.
 
 The Dugout Compose project creates and owns a bridge network with the explicit
 global name `moznet`. This avoids Docker's project-name prefix and makes a
-fresh `make services-up` deterministic.
+fresh `make up` deterministic.
 
 `moznet` remains external to application Compose projects. Those projects
 treat it as infrastructure whose lifecycle is managed by Dugout and fail when

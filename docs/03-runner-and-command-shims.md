@@ -204,7 +204,7 @@ The committed catalog defines baseline policy and `.env` can choose one of:
 | `bridge` | Docker's ordinary bridge; useful for package downloads |
 | `moznet` | Dugout's managed, globally named development network |
 
-The runner never creates `moznet`; `make services-up` does. A tool configured
+The runner never creates `moznet`; `make up` does. A tool configured
 for `moznet` fails with a clear error if the network is absent. No invocation
 adds `--publish`, `--privileged`, or the Docker socket.
 

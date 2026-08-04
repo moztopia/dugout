@@ -23,6 +23,7 @@ from dugout_lifecycle import (
     existing_installation_resources,
     fail,
     foreign_network_containers,
+    image_exists,
     load_state,
     remove_path,
     run,

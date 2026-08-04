@@ -16,9 +16,40 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "scripts"))
 
 import dugout_lifecycle as lifecycle  # noqa: E402
+import uninstall as uninstall_command  # noqa: E402
 
 
 class LifecycleTests(unittest.TestCase):
+    def test_uninstall_removes_an_owned_image_that_exists(self) -> None:
+        completed = type("Completed", (), {"returncode": 0})()
+        plan = {
+            "containers": [],
+            "volumes": [],
+            "network": lifecycle.NETWORK,
+            "images": [lifecycle.TOOL_IMAGES[0]],
+            "cache_paths": [],
+            "runtime_paths": [],
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            with (
+                patch.object(uninstall_command, "require_interactive"),
+                patch.object(uninstall_command, "removal_plan", return_value=plan),
+                patch.object(uninstall_command, "foreign_network_containers", return_value=[]),
+                patch.object(uninstall_command, "confirm"),
+                patch.object(uninstall_command, "image_exists", return_value=True),
+                patch.object(uninstall_command, "existing_installation_resources", return_value=[]),
+                patch.object(uninstall_command, "ENV_FILE", root / ".env"),
+                patch.object(uninstall_command, "STATE_FILE", root / "state.json"),
+                patch.object(uninstall_command, "run", return_value=completed) as run,
+            ):
+                uninstall_command.uninstall()
+
+        run.assert_any_call(
+            ["docker", "image", "rm", lifecycle.TOOL_IMAGES[0]],
+            check=False,
+        )
+
     def test_free_privileged_port_is_available_to_docker(self) -> None:
         listener = unittest.mock.MagicMock()
         listener.bind.side_effect = PermissionError(

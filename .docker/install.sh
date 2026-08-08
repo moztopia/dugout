@@ -1,11 +1,11 @@
 #!/bin/sh
 # Dugout installer — containerized development tools
-# Usage: curl -fsSL https://raw.githubusercontent.com/moztopia/dugout/main/install.sh | sh
+# Usage: curl -fsSL https://raw.githubusercontent.com/moztopia/dugout/main/.docker/install.sh | sh
 set -eu
 
 REPO="https://raw.githubusercontent.com/moztopia/dugout/main"
 INSTALL_DIR="${HOME}/.local/bin/dugout"
-SHIMS="node npm npx"
+SHIMS="node npm npx php composer"
 
 printf '\n  Dugout — installing containerized dev tools\n\n'
 

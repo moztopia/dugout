@@ -5,6 +5,10 @@ TTY_FLAG=""
 HOSTBIN="${HOME}/.local/bin/dugout"
 DUGOUT_HOME="${HOME}/.dugout"
 mkdir -p "$HOSTBIN" "$DUGOUT_HOME"
+
+# Source .env if present (for GH_DUGOUT_PACKAGES_WRITE etc.)
+[ -f .env ] && . ./.env 2>/dev/null || true
+
 exec docker run --rm --init -i $TTY_FLAG \
   -v "$(pwd):/workspace" \
   -v "${HOSTBIN}:/hostbin" \
@@ -14,6 +18,7 @@ exec docker run --rm --init -i $TTY_FLAG \
   -e "DUGOUT_HOME=/dugout-home" \
   -e "DUGOUT_HOST_PATH=${PATH}" \
   -e "DUGOUT_HOST_HOME=${HOME}" \
+  -e "GH_DUGOUT_PACKAGES_WRITE=${GH_DUGOUT_PACKAGES_WRITE:-}" \
   -w /workspace \
   ghcr.io/moztopia/dugout-tools:latest \
   dugout "$@"

@@ -11,3 +11,4 @@
 /.dugout-install-state.tmp
 **/__pycache__/
 *.pem
+.env

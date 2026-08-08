@@ -118,7 +118,32 @@ def do_build(name, dockerfile, build_arg, ver):
     ])
 
 
+_ghcr_logged_in = False
+
+
+def ghcr_login():
+    """Login to GHCR using GH_DUGOUT_PACKAGES_WRITE if available."""
+    global _ghcr_logged_in
+    if _ghcr_logged_in:
+        return
+    token = os.environ.get("GH_DUGOUT_PACKAGES_WRITE", "")
+    if token:
+        msg("Authenticating with GHCR...")
+        result = subprocess.run(
+            ["docker", "login", "ghcr.io", "-u", "moztopia", "--password-stdin"],
+            input=token, text=True, capture_output=True,
+        )
+        if result.returncode == 0:
+            success("GHCR login")
+        else:
+            fail("GHCR login failed")
+            msg(result.stderr.strip())
+            sys.exit(1)
+    _ghcr_logged_in = True
+
+
 def do_push(name, dockerfile, build_arg, ver):
+    ghcr_login()
     tag = f"{PREFIX}-{name}:{ver}"
     msg(f"Pushing {tag}")
     run(["docker", "push", tag])

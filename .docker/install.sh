@@ -26,4 +26,5 @@ case ":${PATH}:" in
     ;;
 esac
 
-printf '\n  Done. Open a new terminal and try: npm --version\n\n'
+printf '\n  Done. Open a new terminal and try:\n'
+printf '    node --version | npm --version | php --version | composer --version\n\n'

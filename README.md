@@ -16,7 +16,7 @@ Nothing is installed on your machine except a few tiny shell scripts.
 ## Install
 
 ```sh
-curl -fsSL https://github.com/moztopia/dugout/raw/main/.docker/install.sh | sh
+curl -fsSL https://github.com/moztopia/dugout/raw/main/install.sh | sh
 ```
 
 Make sure `~/.local/bin/dugout` is in your `PATH`. Add this to your shell
@@ -26,27 +26,25 @@ config if it isn't already:
 export PATH="$HOME/.local/bin/dugout:$PATH"
 ```
 
-Open a new terminal and verify:
+Then install shims and tools:
 
 ```sh
+dugout install shims
+dugout install tools
+```
+
+Verify:
+
+```sh
+dugout status
 node --version
 php --version
-python --version
-ffmpeg -version
 ```
 
 ## Uninstall
 
-Remove the shims:
-
 ```sh
-rm -rf ~/.local/bin/dugout
-```
-
-Optionally remove the cached Docker images:
-
-```sh
-docker images "ghcr.io/moztopia/dugout-*" -q | xargs docker rmi
+dugout uninstall
 ```
 
 That's everything. No config files, no daemons, no leftover state.
@@ -58,8 +56,8 @@ That's everything. No config files, no daemons, no leftover state.
 Each command in `~/.local/bin/dugout/` is a ~10 line shell script that calls
 `docker run` with the right image and mounts your current directory:
 
-```
-you type: npm install
+```demo
+      you: npm install
      shim: docker run --rm ghcr.io/moztopia/dugout-node:24 npm install
    result: node_modules/ created in your project directory
 ```
@@ -111,37 +109,37 @@ DUGOUT_PHP_VERSION=8.2 php --version
 
 ## Repository Structure
 
-```
+```tree
+install.sh                    Curl bootstrap installer
 .docker/
   images/                     Image recipes (Dockerfiles)
-  installer.Dockerfile        Installer image
-  install.sh                  Curl installer
-bin/                          Shims — one per command
+bin/                          Shims — one per command (POSIX sh)
 tools/
-  barrel/                     Barrel — file scaffolding tool
-dugout                        Admin CLI for building/pushing images
+  dugout_core.py              Shared Python library
+  dugout/dugout               Dugout CLI (Python, runs in container)
+  barrel/barrel               Barrel tool (Python, runs in container)
 ```
 
 ## For Maintainers
 
-Build, install, and push everything:
+Build and push everything:
 
 ```sh
-./dugout shims deploy
+./bin/dugout admin shims deploy
 ```
 
 Or target a specific tool:
 
 ```sh
-./dugout shims build node
-./dugout shims push redis
-./dugout shims deploy cdev
+./bin/dugout admin shims build node
+./bin/dugout admin shims push redis
+./bin/dugout admin shims deploy cdev
 ```
 
 List all defined images:
 
 ```sh
-./dugout shims images
+./bin/dugout admin shims images
 ```
 
 ---

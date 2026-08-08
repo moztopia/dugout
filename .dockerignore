@@ -1,8 +1,0 @@
-.git
-.env
-docs
-services
-tests
-*.log
-*.sqlite*
-*.txt

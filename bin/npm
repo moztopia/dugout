@@ -1,4 +1,12 @@
 #!/bin/sh
 set -eu
-
-exec "$(CDPATH='' cd "$(dirname "$0")" && pwd)/dug" tool npm "$@"
+TTY_FLAG=""
+[ -t 0 ] && [ -t 1 ] && TTY_FLAG="-t"
+exec docker run --rm --init -i $TTY_FLAG \
+  --user "$(id -u):$(id -g)" \
+  -e "HOME=/tmp" \
+  -v "$(pwd):/workspace" \
+  -w /workspace \
+  --entrypoint npm \
+  "ghcr.io/moztopia/dugout-node:${DUGOUT_NODE_VERSION:-24}" \
+  "$@"

@@ -1,9 +1,0 @@
-{
-    "config": {
-        "extends": ".markdownlint.jsonc"
-    },
-    "ignores": [
-        "**/node_modules/**",
-        "packages/api-client-typescript/**/*.md"
-    ]
-}

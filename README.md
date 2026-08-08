@@ -1,91 +1,60 @@
 # Dugout
 
-Dugout provides optional local web utilities and repository-local container
-wrappers for PHP, Composer, Node.js, npm, and npx. There is no installer and no
-reverse proxy.
+Containerized development tools. No installers, no version managers, no host pollution.
 
-## Requirements
-
-You need:
-
-- Docker Engine or Docker Desktop, with the Docker Compose plugin;
-- GNU Make;
-- Git and VS Code only if you want the repository-local command wrappers.
-
-Start Docker, then prepare the configuration:
+## Install
 
 ```sh
-git clone https://github.com/mozrin/dugout.git
-cd dugout
-cp .env.example .env
+curl -fsSL https://raw.githubusercontent.com/moztopia/dugout/main/.docker/install.sh | sh
 ```
 
-Review `.env` before starting. The required decisions are:
+Requires Docker. That's it.
 
-- set each `DUGOUT_<SERVICE>_ENABLED` value to `1` or `0`;
-- change any `DUGOUT_<SERVICE>_PORT` that conflicts with another local service;
-- change tool image versions only when you intentionally want different tool
-  images.
-
-Start the enabled utilities:
+## Use
 
 ```sh
-make up
-```
-
-Compose creates the shared `moznet` Docker network automatically. It also
-pulls the utility images when they are not already present.
-
-## Utilities
-
-All browser and SMTP ports bind only to `127.0.0.1`; Dugout has no proxy,
-public routes, TLS configuration, or external proxy network.
-
-| Utility | Default local endpoint | Enable setting |
-| --- | --- | --- |
-| Portainer | `http://localhost:9000` | `DUGOUT_PORTAINER_ENABLED` |
-| Adminer | `http://localhost:8080` | `DUGOUT_ADMINER_ENABLED` |
-| Mailpit UI | `http://localhost:8025` | `DUGOUT_MAILPIT_ENABLED` |
-| Mailpit SMTP | `localhost:1025` | `DUGOUT_MAILPIT_ENABLED` |
-| Dozzle | `http://localhost:9999` | `DUGOUT_DOZZLE_ENABLED` |
-
-Set an enable value to `0` and run `make up` again. Compose removes that
-service's container while preserving its named volume. Set it back to `1` and
-run `make up` to restore it.
-
-Services on `moznet` remain reachable to application containers by Compose
-service name, such as `mailpit:1025`.
-
-## Commands
-
-```sh
-make up       # apply .env and start enabled utilities
-make status   # show utility status
-make stop     # stop utilities without removing containers
-make restart  # restart existing utility containers
-make down     # remove containers and network, preserving named volumes
-```
-
-To delete persistent utility data as well, explicitly run
-`docker compose down --volumes`.
-
-## Command wrappers
-
-Open Dugout in VS Code and create a new integrated terminal to use its local
-`php`, `composer`, `node`, `npm`, and `npx` wrappers. They read tool versions
-and network policies from `.env`; they do not install host commands or modify
-your shell profile.
-
-Verify them with:
-
-```sh
-dug doctor
-php --version
-composer --version
 node --version
-npm --version
-npx --version
+npm install
+npx vite
 ```
 
-For maintainer and architecture details, see the
-[documentation index](docs/README.md).
+## Switch Node Versions
+
+Set `DUGOUT_NODE_VERSION` in your shell config:
+
+```sh
+export DUGOUT_NODE_VERSION=22
+```
+
+| Version | Status |
+| --- | --- |
+| 22 | Supported |
+| 24 | **Default** |
+| 26 | Supported |
+
+## How It Works
+
+Each command is a shell shim that runs `docker run` with the right image.
+No binaries are installed on your machine. The tools live inside containers
+pulled from `ghcr.io/moztopia/dugout-node`.
+
+## Repository Structure
+
+```tree
+.docker/
+  images/node.Dockerfile    Image recipe for Node 22/24/26
+  installer.Dockerfile      Installer image
+  install.sh                Curl installer
+bin/
+  node                      Shim
+  npm                       Shim
+  npx                       Shim
+tools/
+  barrel/                   Barrel — file scaffolding tool
+```
+
+## Uninstall
+
+```sh
+rm -rf ~/.local/bin/dugout
+```

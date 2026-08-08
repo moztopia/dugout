@@ -1,9 +1,0 @@
-{
-  "workbench.startupEditor": "readme",
-  "terminal.integrated.env.linux": {
-    "PATH": "${workspaceFolder}/bin:${env:PATH}"
-  },
-  "terminal.integrated.env.osx": {
-    "PATH": "${workspaceFolder}/bin:${env:PATH}"
-  }
-}

@@ -1,21 +1,18 @@
 #!/bin/sh
-# Dugout installer — containerized development tools
-# Usage: curl -fsSL https://raw.githubusercontent.com/moztopia/dugout/main/.docker/install.sh | sh
+# Dugout installer — installs the dugout CLI
+# Usage: curl -fsSL https://github.com/moztopia/dugout/raw/main/.docker/install.sh | sh
 set -eu
 
 REPO="https://github.com/moztopia/dugout/raw/main"
 INSTALL_DIR="${HOME}/.local/bin/dugout"
-SHIMS="node npm npx php composer mysql mariadb redis-cli ffmpeg ffprobe psql sqlite3 gcc g++ make cmake nasm fasm gdb go rustc cargo"
 
-printf '\n  Dugout — installing containerized dev tools\n\n'
+printf '\n  Dugout — installing CLI\n\n'
 
 mkdir -p "$INSTALL_DIR"
 
-for shim in $SHIMS; do
-  curl -fsSL "$REPO/bin/$shim" -o "$INSTALL_DIR/$shim"
-  chmod +x "$INSTALL_DIR/$shim"
-  printf '  ✓ %s\n' "$shim"
-done
+curl -fsSL "$REPO/dugout" -o "$INSTALL_DIR/dugout"
+chmod +x "$INSTALL_DIR/dugout"
+printf '  ✓ dugout\n'
 
 # Check PATH
 case ":${PATH}:" in
@@ -26,5 +23,5 @@ case ":${PATH}:" in
     ;;
 esac
 
-printf '\n  Done. Open a new terminal and try:\n'
-printf '    node --version | php --version | python --version | ffmpeg -version\n\n'
+printf '\n  Done. Now run:\n'
+printf '    dugout shims install\n\n'

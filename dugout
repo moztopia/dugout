@@ -5,6 +5,8 @@ set -eu
 PREFIX="ghcr.io/moztopia/dugout"
 DUGOUT_ROOT="$(cd "$(dirname "$0")" && pwd)"
 INSTALL_DIR="${HOME}/.local/bin/dugout"
+REPO="https://github.com/moztopia/dugout/raw/main"
+SHIMS="node npm npx php composer mysql mariadb redis-cli ffmpeg ffprobe psql sqlite3 gcc g++ make cmake nasm fasm gdb go rustc cargo"
 
 # ── Image definitions ────────────────────────────────────────
 # name|dockerfile|build_arg|versions (space-separated)
@@ -37,7 +39,7 @@ Commands:
 Shims actions:
   dugout shims build   [tool]     Build images (all or specific tool)
   dugout shims push    [tool]     Push images to GHCR (all or specific tool)
-  dugout shims install            Copy shims to ~/.local/bin/dugout
+  dugout shims install            Download and install shims from GitHub
   dugout shims deploy  [tool]     Build + install + push (all or specific tool)
   dugout shims images             List all defined images and versions
 EOF
@@ -84,6 +86,16 @@ each_image() {
 
 # ── Actions ──────────────────────────────────────────────────
 
+require_maintainer() {
+  printf '\n  Maintainer operation — requires the dugout repo and ghcr.io write access.\n'
+  printf '  Continue? [y/N] '
+  read -r confirm
+  case "$confirm" in
+    y|Y|yes|YES) ;;
+    *) printf '  Aborted.\n\n'; exit 0 ;;
+  esac
+}
+
 do_build() {
   name="$1" file="$2" arg="$3" ver="$4"
   tag="${PREFIX}-${name}:${ver}"
@@ -104,9 +116,11 @@ do_push() {
 
 do_install() {
   mkdir -p "$INSTALL_DIR"
-  cp "${DUGOUT_ROOT}"/bin/* "$INSTALL_DIR/"
-  chmod +x "$INSTALL_DIR"/*
-  printf '  Shims installed to %s\n' "$INSTALL_DIR"
+  for shim in $SHIMS; do
+    curl -fsSL "$REPO/bin/$shim" -o "$INSTALL_DIR/$shim"
+    chmod +x "$INSTALL_DIR/$shim"
+    printf '  ✓ %s\n' "$shim"
+  done
 }
 
 do_list() {
@@ -135,11 +149,13 @@ case "$command" in
 
     case "$subcommand" in
       build)
+        require_maintainer
         printf '\nBuilding images:\n'
         each_image do_build "$tool"
         printf '\nDone.\n\n'
         ;;
       push)
+        require_maintainer
         printf '\nPushing images:\n'
         each_image do_push "$tool"
         printf '\nDone.\n\n'
@@ -150,6 +166,7 @@ case "$command" in
         printf '\nDone.\n\n'
         ;;
       deploy)
+        require_maintainer
         printf '\nBuilding images:\n'
         each_image do_build "$tool"
         printf '\nInstalling shims:\n'
@@ -201,12 +218,19 @@ case "$command" in
     printf '\n'
     ;;
   uninstall)
-    printf '\n  Uninstalling Dugout...\n\n'
+    printf '\n  This will remove all dugout shims and the dugout CLI from:\n'
+    printf '    %s\n\n' "$INSTALL_DIR"
+    printf '  Continue? [y/N] '
+    read -r confirm
+    case "$confirm" in
+      y|Y|yes|YES) ;;
+      *) printf '  Aborted.\n\n'; exit 0 ;;
+    esac
     if [ -d "$INSTALL_DIR" ]; then
       rm -rf "$INSTALL_DIR"
-      printf '  ✓ Removed %s\n' "$INSTALL_DIR"
+      printf '\n  ✓ Removed %s\n' "$INSTALL_DIR"
     else
-      printf '  (nothing to remove)\n'
+      printf '\n  (nothing to remove)\n'
     fi
     printf '\n  Optionally remove cached images:\n'
     printf '    docker images "ghcr.io/moztopia/dugout-*" -q | xargs docker rmi\n\n'

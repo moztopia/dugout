@@ -3,7 +3,7 @@ FROM alpine:3.20
 LABEL org.opencontainers.image.title="Dugout Installer"
 LABEL org.opencontainers.image.source="https://github.com/moztopia/dugout"
 
-COPY bin/node bin/npm bin/npx bin/php bin/composer bin/mysql bin/mariadb /shims/
+COPY bin/ /shims/
 COPY .docker/install.sh /install.sh
 
 RUN chmod +x /install.sh /shims/*

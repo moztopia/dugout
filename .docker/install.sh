@@ -5,7 +5,7 @@ set -eu
 
 REPO="https://github.com/moztopia/dugout/raw/main"
 INSTALL_DIR="${HOME}/.local/bin/dugout"
-SHIMS="node npm npx php composer mysql mariadb"
+SHIMS="node npm npx php composer mysql mariadb redis-cli ffmpeg ffprobe psql sqlite3 gcc g++ make cmake nasm fasm gdb go rustc cargo"
 
 printf '\n  Dugout — installing containerized dev tools\n\n'
 
@@ -27,4 +27,4 @@ case ":${PATH}:" in
 esac
 
 printf '\n  Done. Open a new terminal and try:\n'
-printf '    node --version | php --version | mysql --version | mariadb --version\n\n'
+printf '    node --version | php --version | python --version | ffmpeg -version\n\n'

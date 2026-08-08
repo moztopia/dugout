@@ -1,0 +1,12 @@
+#!/bin/sh
+set -eu
+TTY_FLAG=""
+[ -t 0 ] && [ -t 1 ] && TTY_FLAG="-t"
+exec docker run --rm --init -i $TTY_FLAG \
+  --user "$(id -u):$(id -g)" \
+  -e "HOME=/tmp" \
+  -v "$(pwd):/workspace" \
+  -w /workspace \
+  --entrypoint cmake \
+  "ghcr.io/moztopia/dugout-cdev:latest" \
+  "$@"

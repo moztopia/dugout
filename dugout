@@ -1,5 +1,5 @@
 #!/bin/sh
-# Dugout admin — build, push, and install containerized dev tools
+# Dugout — containerized development tools
 set -eu
 
 PREFIX="ghcr.io/moztopia/dugout"
@@ -20,11 +20,14 @@ mariadb | .docker/images/mariadb.Dockerfile | MARIADB_VERSION | 10.11 11.4
 usage() {
   cat <<'EOF'
 Usage:
-  admin build   [tool]     Build images (all or specific tool)
-  admin push    [tool]     Push images to GHCR (all or specific tool)
-  admin install            Copy shims to ~/.local/bin/dugout
-  admin deploy  [tool]     Build + install + push (all or specific tool)
-  admin images             List all defined images and versions
+  dugout admin <command> [tool]
+
+Admin commands:
+  dugout admin build   [tool]     Build images (all or specific tool)
+  dugout admin push    [tool]     Push images to GHCR (all or specific tool)
+  dugout admin install            Copy shims to ~/.local/bin/dugout
+  dugout admin deploy  [tool]     Build + install + push (all or specific tool)
+  dugout admin images             List all defined images and versions
 EOF
 }
 
@@ -55,7 +58,6 @@ each_image() {
   done
 
   if [ -n "$filter" ]; then
-    found=""
     echo "$IMAGES" | while IFS= read -r line; do
       line="$(echo "$line" | sed 's/^[[:space:]]*//')"
       [ -n "$line" ] || continue
@@ -106,37 +108,49 @@ do_list() {
 
 command="$1"
 shift
-tool="${1:-}"
 
 case "$command" in
-  build)
-    printf '\nBuilding images:\n'
-    each_image do_build "$tool"
-    printf '\nDone.\n\n'
-    ;;
-  push)
-    printf '\nPushing images:\n'
-    each_image do_push "$tool"
-    printf '\nDone.\n\n'
-    ;;
-  install)
-    printf '\nInstalling shims:\n'
-    do_install
-    printf '\nDone.\n\n'
-    ;;
-  deploy)
-    printf '\nBuilding images:\n'
-    each_image do_build "$tool"
-    printf '\nInstalling shims:\n'
-    do_install
-    printf '\nPushing images:\n'
-    each_image do_push "$tool"
-    printf '\nDone.\n\n'
-    ;;
-  images)
-    printf '\nDefined images:\n'
-    each_image do_list ""
-    printf '\n'
+  admin)
+    [ "$#" -gt 0 ] || { usage; exit 1; }
+    subcommand="$1"
+    shift
+    tool="${1:-}"
+
+    case "$subcommand" in
+      build)
+        printf '\nBuilding images:\n'
+        each_image do_build "$tool"
+        printf '\nDone.\n\n'
+        ;;
+      push)
+        printf '\nPushing images:\n'
+        each_image do_push "$tool"
+        printf '\nDone.\n\n'
+        ;;
+      install)
+        printf '\nInstalling shims:\n'
+        do_install
+        printf '\nDone.\n\n'
+        ;;
+      deploy)
+        printf '\nBuilding images:\n'
+        each_image do_build "$tool"
+        printf '\nInstalling shims:\n'
+        do_install
+        printf '\nPushing images:\n'
+        each_image do_push "$tool"
+        printf '\nDone.\n\n'
+        ;;
+      images)
+        printf '\nDefined images:\n'
+        each_image do_list ""
+        printf '\n'
+        ;;
+      *)
+        usage
+        exit 1
+        ;;
+    esac
     ;;
   *)
     usage

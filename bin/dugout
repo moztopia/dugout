@@ -1,0 +1,16 @@
+#!/bin/sh
+set -eu
+TTY_FLAG=""
+[ -t 0 ] && [ -t 1 ] && TTY_FLAG="-t"
+HOSTBIN="${HOME}/.local/bin/dugout"
+mkdir -p "$HOSTBIN"
+exec docker run --rm --init -i $TTY_FLAG \
+  -v "$(pwd):/workspace" \
+  -v "${HOSTBIN}:/hostbin" \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  -e "DUGOUT_HOSTBIN=/hostbin" \
+  -e "DUGOUT_HOST_PATH=${PATH}" \
+  -e "DUGOUT_HOST_HOME=${HOME}" \
+  -w /workspace \
+  ghcr.io/moztopia/dugout-tools:latest \
+  dugout "$@"

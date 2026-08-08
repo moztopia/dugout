@@ -1,5 +1,5 @@
 #!/bin/sh
-# Dugout installer — installs the dugout CLI
+# Dugout installer — installs the dugout CLI shim
 # Usage: curl -fsSL https://github.com/moztopia/dugout/raw/main/.docker/install.sh | sh
 set -eu
 
@@ -10,7 +10,7 @@ printf '\n  Dugout — installing CLI\n\n'
 
 mkdir -p "$INSTALL_DIR"
 
-curl -fsSL "$REPO/dugout" -o "$INSTALL_DIR/dugout"
+curl -fsSL "$REPO/bin/dugout" -o "$INSTALL_DIR/dugout"
 chmod +x "$INSTALL_DIR/dugout"
 printf '  ✓ dugout\n'
 
@@ -24,4 +24,4 @@ case ":${PATH}:" in
 esac
 
 printf '\n  Done. Now run:\n'
-printf '    dugout shims install\n\n'
+printf '    dugout install shims\n\n'

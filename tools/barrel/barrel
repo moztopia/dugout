@@ -6,8 +6,8 @@ import yaml
 
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-LANGUAGES_PATH = os.path.join(SCRIPT_DIR, "barrel.languages.yaml")
-README_PATH = os.path.join(SCRIPT_DIR, "barrel.README.md")
+LANGUAGES_PATH = os.path.join(SCRIPT_DIR, "barrel.config.yaml")
+HELP_PATH = os.path.join(SCRIPT_DIR, "barrel.help.md")
 
 
 def parse_args():
@@ -15,7 +15,7 @@ def parse_args():
         prog="barrel",
         description="Generate barrel files from a barrel.yaml configuration.",
         epilog=(
-            f"Documentation: {README_PATH}\n"
+            f"Documentation: {HELP_PATH}\n"
             f"Language definitions: {LANGUAGES_PATH}"
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,

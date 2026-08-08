@@ -1,0 +1,324 @@
+#!/usr/bin/env python3
+"""Dugout — containerized development tools."""
+
+import os
+import sys
+import subprocess
+
+from dugout_core import (
+    PREFIX, REPO, INSTALL_DIR,
+    msg, success, fail, header, done, confirm,
+    require_maintainer, download_to, install_from_repo,
+    check_help, run,
+)
+
+# ── Constants ────────────────────────────────────────────────
+
+SHIMS = [
+    "node", "npm", "npx", "php", "composer",
+    "mysql", "mariadb", "redis-cli",
+    "ffmpeg", "ffprobe", "psql", "sqlite3",
+    "gcc", "g++", "make", "cmake", "nasm", "fasm", "gdb",
+    "go", "rustc", "cargo",
+]
+
+TOOLS = ["dugout", "barrel"]
+
+# name, dockerfile, build_arg, versions
+IMAGES = [
+    ("node",    ".docker/images/node.Dockerfile",    "NODE_VERSION",     ["22", "24", "26"]),
+    ("php",     ".docker/images/php.Dockerfile",     "PHP_VERSION",      ["8.2", "8.3", "8.4", "8.5"]),
+    ("mysql",   ".docker/images/mysql.Dockerfile",   "MYSQL_VERSION",    ["8.4"]),
+    ("mariadb", ".docker/images/mariadb.Dockerfile", "MARIADB_VERSION",  ["10.11", "11.4"]),
+    ("redis",   ".docker/images/redis.Dockerfile",   "REDIS_VERSION",    ["7.2", "7.4"]),
+    ("ffmpeg",  ".docker/images/ffmpeg.Dockerfile",  "FFMPEG_VERSION",   ["latest"]),
+    ("psql",    ".docker/images/psql.Dockerfile",    "POSTGRES_VERSION", ["16", "17"]),
+    ("sqlite",  ".docker/images/sqlite.Dockerfile",  "SQLITE_VERSION",   ["latest"]),
+    ("cdev",    ".docker/images/cdev.Dockerfile",    "CDEV_VERSION",     ["latest"]),
+    ("go",      ".docker/images/go.Dockerfile",      "GO_VERSION",       ["1.25", "1.26"]),
+    ("rust",    ".docker/images/rust.Dockerfile",    "RUST_VERSION",     ["stable"]),
+    ("tools",   ".docker/images/tools.Dockerfile",   "TOOLS_VERSION",    ["latest"]),
+]
+
+USAGE = """
+Usage:
+  dugout <command>
+
+Commands:
+  dugout install [shims|tools] [name]     Download and install from GitHub
+  dugout status                           Show installed shims and Docker status
+  dugout uninstall [shims|tools] [name]   Remove shims, tools, a category, or everything
+
+Maintainer:
+  dugout admin shims build  [tool]        Build images (all or specific tool)
+  dugout admin shims push   [tool]        Push images to GHCR (all or specific tool)
+  dugout admin shims deploy [tool]        Build + push (all or specific tool)
+  dugout admin shims images               List all defined images and versions
+""".strip()
+
+
+# ── Helpers ──────────────────────────────────────────────────
+
+def usage():
+    print(USAGE)
+
+
+def each_image(action, filter_name=None):
+    found = False
+    for name, dockerfile, build_arg, versions in IMAGES:
+        if filter_name and name != filter_name:
+            continue
+        found = True
+        for ver in versions:
+            action(name, dockerfile, build_arg, ver)
+    if filter_name and not found:
+        fail(f"Unknown tool: {filter_name}")
+        sys.exit(1)
+
+
+# ── Actions ──────────────────────────────────────────────────
+
+def do_build(name, dockerfile, build_arg, ver):
+    tag = f"{PREFIX}-{name}:{ver}"
+    msg(f"Building {tag}")
+    run([
+        "docker", "build",
+        "--build-arg", f"{build_arg}={ver}",
+        "--file", f"/workspace/{dockerfile}",
+        "--tag", tag,
+        "/workspace",
+    ])
+
+
+def do_push(name, dockerfile, build_arg, ver):
+    tag = f"{PREFIX}-{name}:{ver}"
+    msg(f"Pushing {tag}")
+    run(["docker", "push", tag])
+
+
+def do_list(name, dockerfile, build_arg, ver):
+    tag = f"{PREFIX}-{name}:{ver}"
+    print(f"  {name:<12} {tag}")
+
+
+def install_shims(name=None):
+    os.makedirs(INSTALL_DIR, exist_ok=True)
+    targets = [name] if name else SHIMS
+    for shim in targets:
+        if shim not in SHIMS:
+            fail(f"Unknown shim: {shim}")
+            sys.exit(1)
+        download_to(os.path.join(INSTALL_DIR, shim), f"{REPO}/bin/{shim}")
+        success(shim)
+
+
+def install_tools(name=None):
+    os.makedirs(INSTALL_DIR, exist_ok=True)
+    targets = [name] if name else TOOLS
+    for tool in targets:
+        if tool not in TOOLS:
+            fail(f"Unknown tool: {tool}")
+            sys.exit(1)
+        download_to(os.path.join(INSTALL_DIR, tool), f"{REPO}/bin/{tool}")
+        success(tool)
+
+
+def uninstall_items(items, label):
+    removed = 0
+    for item in items:
+        path = os.path.join(INSTALL_DIR, item)
+        if os.path.isfile(path):
+            os.remove(path)
+            success(item)
+            removed += 1
+    if removed == 0:
+        msg(f"No {label} installed.")
+
+
+# ── Commands ─────────────────────────────────────────────────
+
+def cmd_install(args):
+    category = args[0] if args else "shims"
+    name = args[1] if len(args) > 1 else None
+
+    if category == "shims":
+        header("Installing shims:")
+        install_shims(name)
+        done()
+    elif category == "tools":
+        header("Installing tools:")
+        install_tools(name)
+        done()
+    else:
+        fail(f"Unknown category: {category}")
+        msg("Available: shims, tools")
+        sys.exit(1)
+
+
+def cmd_status(_args):
+    header("Dugout Status")
+
+    # Docker — if we're running, Docker works
+    success("Docker: running")
+
+    # PATH check using host PATH passed via env
+    host_path = os.environ.get("DUGOUT_HOST_PATH", "")
+    host_home = os.environ.get("DUGOUT_HOST_HOME", "")
+    install_path = f"{host_home}/.local/bin/dugout" if host_home else ""
+    if install_path and f":{install_path}:" in f":{host_path}:":
+        success(f"PATH: {install_path}")
+    elif install_path:
+        fail(f"PATH: {install_path} not in PATH")
+
+    # Installed shims
+    print("\n  Installed shims:")
+    has_shims = False
+    for shim in SHIMS:
+        path = os.path.join(INSTALL_DIR, shim)
+        if os.path.isfile(path):
+            print(f"    ✓ {shim}")
+            has_shims = True
+    if not has_shims:
+        print("    (none)")
+
+    # Installed tools
+    print("\n  Installed tools:")
+    for tool in TOOLS:
+        path = os.path.join(INSTALL_DIR, tool)
+        if os.path.isfile(path):
+            print(f"    ✓ {tool}")
+        else:
+            print(f"    ✗ {tool}")
+    print()
+
+
+def cmd_uninstall(args):
+    category = args[0] if args else None
+    name = args[1] if len(args) > 1 else None
+
+    if category is None:
+        # Uninstall everything
+        print(f"\n  This will remove all dugout shims, tools, and the CLI from:")
+        print(f"    {INSTALL_DIR}\n")
+        confirm("Continue?")
+        if os.path.isdir(INSTALL_DIR):
+            for f in os.listdir(INSTALL_DIR):
+                path = os.path.join(INSTALL_DIR, f)
+                if os.path.isfile(path):
+                    os.remove(path)
+                    success(f)
+        else:
+            msg("(nothing to remove)")
+        print("\n  Optionally remove cached images:")
+        print('    docker images "ghcr.io/moztopia/dugout-*" -q | xargs docker rmi\n')
+    elif category == "shims":
+        if name:
+            path = os.path.join(INSTALL_DIR, name)
+            if os.path.isfile(path):
+                os.remove(path)
+                success(f"Removed {name}")
+            else:
+                fail(f"{name} is not installed")
+                sys.exit(1)
+        else:
+            header("Removing all shims:")
+            uninstall_items(SHIMS, "shims")
+            done()
+    elif category == "tools":
+        if name:
+            path = os.path.join(INSTALL_DIR, name)
+            if os.path.isfile(path):
+                os.remove(path)
+                success(f"Removed {name}")
+            else:
+                fail(f"{name} is not installed")
+                sys.exit(1)
+        else:
+            header("Removing all tools:")
+            uninstall_items(TOOLS, "tools")
+            done()
+    else:
+        fail(f"Unknown category: {category}")
+        msg("Available: shims, tools")
+        sys.exit(1)
+
+
+def cmd_admin(args):
+    if not args:
+        usage()
+        sys.exit(1)
+
+    admin_cat = args[0]
+    sub_args = args[1:]
+
+    if admin_cat == "shims":
+        if not sub_args:
+            usage()
+            sys.exit(1)
+
+        subcommand = sub_args[0]
+        tool = sub_args[1] if len(sub_args) > 1 else None
+
+        if subcommand == "build":
+            require_maintainer()
+            header("Building images:")
+            each_image(do_build, tool)
+            done()
+        elif subcommand == "push":
+            require_maintainer()
+            header("Pushing images:")
+            each_image(do_push, tool)
+            done()
+        elif subcommand == "deploy":
+            require_maintainer()
+            header("Building images:")
+            each_image(do_build, tool)
+            header("Pushing images:")
+            each_image(do_push, tool)
+            done()
+        elif subcommand == "images":
+            header("Defined images:")
+            each_image(do_list)
+            print()
+        else:
+            usage()
+            sys.exit(1)
+    else:
+        fail(f"Unknown admin category: {admin_cat}")
+        msg("Available: shims")
+        sys.exit(1)
+
+
+# ── Main ─────────────────────────────────────────────────────
+
+def main():
+    args = sys.argv[1:]
+
+    if check_help(args):
+        usage()
+        sys.exit(0)
+
+    if not args:
+        usage()
+        sys.exit(1)
+
+    command = args[0]
+    rest = args[1:]
+
+    commands = {
+        "install": cmd_install,
+        "status": cmd_status,
+        "uninstall": cmd_uninstall,
+        "admin": cmd_admin,
+    }
+
+    handler = commands.get(command)
+    if handler:
+        handler(rest)
+    else:
+        usage()
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()

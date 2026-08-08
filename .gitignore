@@ -10,3 +10,4 @@
 /.dugout-install-state.json
 /.dugout-install-state.tmp
 **/__pycache__/
+*.pem

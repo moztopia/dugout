@@ -41,6 +41,53 @@ node --version
 php --version
 ```
 
+## Services
+
+Dugout can install persistent dev services behind a Traefik reverse proxy:
+
+```sh
+dugout install services
+```
+
+You'll be prompted for a network name, port, and domain pattern, then asked
+which services to install. Available services:
+
+- **Traefik** — reverse proxy (mandatory)
+- **Portainer** — Docker management UI
+- **Dozzle** — container log viewer
+- **Adminer** — database admin UI
+- **Mailpit** — email testing
+
+Install everything without prompts:
+
+```sh
+dugout install services --all-services
+```
+
+### Advanced: TLS Certificates
+
+Dugout generates a self-signed certificate in `~/.dugout/certs/` automatically.
+HTTPS works out of the box — your browser will show a security warning, but the
+connection is encrypted.
+
+To get rid of the browser warning, use [mkcert](https://github.com/FiloSottile/mkcert):
+
+```sh
+mkcert -install
+mkcert -cert-file ~/.dugout/certs/cert.pem \
+       -key-file ~/.dugout/certs/key.pem \
+       "*.localhost.moztopia.com" "localhost.moztopia.com"
+```
+
+Then restart services:
+
+```sh
+dugout uninstall services
+dugout install services
+```
+
+No other configuration needed. Traefik picks up whatever is in `~/.dugout/certs/`.
+
 ## Uninstall
 
 ```sh
@@ -111,8 +158,11 @@ DUGOUT_PHP_VERSION=8.2 php --version
 
 ```tree
 install.sh                    Curl bootstrap installer
-.docker/
-  images/                     Image recipes (Dockerfiles)
+docker/
+  shims/                      Dockerfiles for shim images
+  services/                   Service definitions (services.yaml)
+  tools/                      Tools container (tools.Dockerfile)
+  installer/                  Installer image
 bin/                          Shims — one per command (POSIX sh)
 tools/
   dugout_core.py              Shared Python library

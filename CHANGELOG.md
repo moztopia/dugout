@@ -4,6 +4,34 @@ All notable changes to Dugout will be documented in this file.
 
 ---
 
+## [0.10.0] — 2026-08-08
+
+### Services
+
+- **Persistent dev services behind Traefik.** `dugout install services` sets up a Traefik reverse proxy and optional dev services — Portainer, Dozzle, Adminer, Mailpit — all accessed via `{service}.{domain}` with no exposed ports.
+- **Interactive install.** Each service is prompted y/n. Use `--all-services` to skip prompts.
+- **Automatic TLS.** Self-signed cert generated in `~/.dugout/certs/`. Drop in mkcert certs for browser-trusted HTTPS.
+- **Config persistence.** Network name, port, and domain pattern saved to `~/.dugout/config`.
+- **Service definitions in YAML.** Adding a new service is just editing `docker/services/services.yaml`.
+
+### Repository Structure
+
+- **Renamed `.docker/` → `docker/`** — no more hidden directories.
+- **Reorganized into clear categories:**
+  - `docker/shims/` — Dockerfiles for shim images
+  - `docker/services/` — service definitions
+  - `docker/tools/` — tools container
+  - `docker/installer/` — installer image
+- **`install.sh` moved to repo root.**
+
+### Tools Container
+
+- Added `openssl` to `dugout-tools` image for cert generation.
+- `docker/` directory now copied into the container so services.yaml is available at runtime.
+- Added `~/.dugout/` host mount for config and cert persistence.
+
+---
+
 ## [0.9.0] — Skywalker — 2026-08-08
 
 ### Architecture
@@ -46,5 +74,5 @@ All notable changes to Dugout will be documented in this file.
 
 - ✓ Linux (tested)
 - ✓ macOS (should work)
-- ⚠ WSL (untested — Windows is evil and nasty)
+- ⚠ WSL (untested)
 - ⚠ Git Bash / Windows (untested)

@@ -1,6 +1,6 @@
 #!/bin/sh
 # Dugout installer — installs the dugout CLI shim
-# Usage: curl -fsSL https://github.com/moztopia/dugout/raw/main/.docker/install.sh | sh
+# Usage: curl -fsSL https://github.com/moztopia/dugout/raw/main/install.sh | sh
 set -eu
 
 REPO="https://github.com/moztopia/dugout/raw/main"

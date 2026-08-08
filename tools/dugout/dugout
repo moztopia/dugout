@@ -7,9 +7,10 @@ import subprocess
 
 from dugout_core import (
     PREFIX, REPO, INSTALL_DIR,
-    msg, success, fail, header, done, confirm,
+    msg, success, fail, header, done, confirm, prompt, prompt_yn,
     require_maintainer, download_to, install_from_repo,
-    check_help, run,
+    check_help, run, run_quiet,
+    load_config, save_config,
 )
 
 # ── Constants ────────────────────────────────────────────────
@@ -26,28 +27,55 @@ TOOLS = ["dugout", "barrel"]
 
 # name, dockerfile, build_arg, versions
 IMAGES = [
-    ("node",    ".docker/images/node.Dockerfile",    "NODE_VERSION",     ["22", "24", "26"]),
-    ("php",     ".docker/images/php.Dockerfile",     "PHP_VERSION",      ["8.2", "8.3", "8.4", "8.5"]),
-    ("mysql",   ".docker/images/mysql.Dockerfile",   "MYSQL_VERSION",    ["8.4"]),
-    ("mariadb", ".docker/images/mariadb.Dockerfile", "MARIADB_VERSION",  ["10.11", "11.4"]),
-    ("redis",   ".docker/images/redis.Dockerfile",   "REDIS_VERSION",    ["7.2", "7.4"]),
-    ("ffmpeg",  ".docker/images/ffmpeg.Dockerfile",  "FFMPEG_VERSION",   ["latest"]),
-    ("psql",    ".docker/images/psql.Dockerfile",    "POSTGRES_VERSION", ["16", "17"]),
-    ("sqlite",  ".docker/images/sqlite.Dockerfile",  "SQLITE_VERSION",   ["latest"]),
-    ("cdev",    ".docker/images/cdev.Dockerfile",    "CDEV_VERSION",     ["latest"]),
-    ("go",      ".docker/images/go.Dockerfile",      "GO_VERSION",       ["1.25", "1.26"]),
-    ("rust",    ".docker/images/rust.Dockerfile",    "RUST_VERSION",     ["stable"]),
-    ("tools",   ".docker/images/tools.Dockerfile",   "TOOLS_VERSION",    ["latest"]),
+    ("node",    "docker/shims/node.Dockerfile",    "NODE_VERSION",     ["22", "24", "26"]),
+    ("php",     "docker/shims/php.Dockerfile",     "PHP_VERSION",      ["8.2", "8.3", "8.4", "8.5"]),
+    ("mysql",   "docker/shims/mysql.Dockerfile",   "MYSQL_VERSION",    ["8.4"]),
+    ("mariadb", "docker/shims/mariadb.Dockerfile", "MARIADB_VERSION",  ["10.11", "11.4"]),
+    ("redis",   "docker/shims/redis.Dockerfile",   "REDIS_VERSION",    ["7.2", "7.4"]),
+    ("ffmpeg",  "docker/shims/ffmpeg.Dockerfile",  "FFMPEG_VERSION",   ["latest"]),
+    ("psql",    "docker/shims/psql.Dockerfile",    "POSTGRES_VERSION", ["16", "17"]),
+    ("sqlite",  "docker/shims/sqlite.Dockerfile",  "SQLITE_VERSION",   ["latest"]),
+    ("cdev",    "docker/shims/cdev.Dockerfile",    "CDEV_VERSION",     ["latest"]),
+    ("go",      "docker/shims/go.Dockerfile",      "GO_VERSION",       ["1.25", "1.26"]),
+    ("rust",    "docker/shims/rust.Dockerfile",    "RUST_VERSION",     ["stable"]),
+    ("tools",   "docker/tools/tools.Dockerfile",   "TOOLS_VERSION",    ["latest"]),
 ]
+
+# ── Service definitions (loaded from YAML) ───────────────────
+
+SERVICES_YAML = "/opt/dugout/docker/services/services.yaml"
+_services_cache = None
+
+
+def load_services():
+    """Load service definitions from services.yaml (cached)."""
+    global _services_cache
+    if _services_cache is not None:
+        return _services_cache
+    import yaml
+    # Try container path first, then workspace path
+    for path in [SERVICES_YAML, "/workspace/docker/services/services.yaml"]:
+        if os.path.isfile(path):
+            with open(path, "r") as f:
+                data = yaml.safe_load(f)
+            _services_cache = data.get("services", [])
+            return _services_cache
+    fail("services.yaml not found")
+    sys.exit(1)
+
+
+def get_services():
+    """Shorthand for load_services()."""
+    return load_services()
 
 USAGE = """
 Usage:
   dugout <command>
 
 Commands:
-  dugout install [shims|tools] [name]     Download and install from GitHub
-  dugout status                           Show installed shims and Docker status
-  dugout uninstall [shims|tools] [name]   Remove shims, tools, a category, or everything
+  dugout install [shims|tools|services] [name]     Download and install
+  dugout status                                    Show status
+  dugout uninstall [shims|tools|services] [name]   Remove installed items
 
 Maintainer:
   dugout admin shims build  [tool]        Build images (all or specific tool)
@@ -135,9 +163,257 @@ def uninstall_items(items, label):
         msg(f"No {label} installed.")
 
 
+# ── Services ─────────────────────────────────────────────────
+
+def check_port_available(port):
+    """Check if a port is available by trying to find listeners."""
+    code, output = run_quiet(["sh", "-c", f"ss -tlnp 2>/dev/null | grep ':{port} ' || true"])
+    return output == ""
+
+
+def check_traefik_running():
+    """Check if a Traefik container is already running."""
+    code, output = run_quiet([
+        "docker", "ps", "--filter", "name=dugout_traefik",
+        "--filter", "status=running", "-q",
+    ])
+    return output != ""
+
+
+def get_service_config():
+    """Load or prompt for service configuration."""
+    config = load_config()
+
+    if "network" in config and "domain" in config and "port" in config:
+        return config
+
+    header("Service Configuration")
+    msg("These settings apply to all dugout services.\n")
+
+    config["network"] = prompt("Docker network name", config.get("network", "dugout-services"))
+    config["port"] = prompt("Traefik port (recommended: 80)", config.get("port", "80"))
+    config["domain"] = prompt("Domain pattern (e.g. localhost.moztopia.com)", config.get("domain", "localhost"))
+
+    print()
+    msg(f"Network:  {config['network']}")
+    msg(f"Port:     {config['port']}")
+    msg(f"Domain:   {config['domain']}")
+    msg(f"Services: traefik.{config['domain']}, portainer.{config['domain']}, ...")
+    print()
+    confirm("Continue?")
+
+    save_config(config)
+    return config
+
+
+def ensure_network(network):
+    """Create the Docker network if it doesn't exist."""
+    code, _ = run_quiet(["docker", "network", "inspect", network])
+    if code != 0:
+        msg(f"Creating network: {network}")
+        run(["docker", "network", "create", network])
+        success(f"Network {network}")
+    else:
+        success(f"Network {network} (exists)")
+
+
+def ensure_certs(config):
+    """Generate self-signed certs and TLS config if they don't exist."""
+    from dugout_core import DUGOUT_HOME
+    domain = config["domain"]
+    cert_dir = os.path.join(DUGOUT_HOME, "certs")
+    dynamic_dir = os.path.join(DUGOUT_HOME, "dynamic")
+    cert_file = os.path.join(cert_dir, "cert.pem")
+    key_file = os.path.join(cert_dir, "key.pem")
+    tls_file = os.path.join(dynamic_dir, "tls.yaml")
+
+    os.makedirs(cert_dir, exist_ok=True)
+    os.makedirs(dynamic_dir, exist_ok=True)
+
+    # Generate self-signed cert if missing
+    if not os.path.isfile(cert_file) or not os.path.isfile(key_file):
+        msg(f"Generating TLS certificate for *.{domain}")
+        run([
+            "openssl", "req", "-x509",
+            "-newkey", "rsa:2048",
+            "-keyout", key_file,
+            "-out", cert_file,
+            "-days", "3650",
+            "-nodes",
+            "-subj", f"/CN=*.{domain}",
+            "-addext", f"subjectAltName=DNS:*.{domain},DNS:{domain}",
+        ])
+        success("TLS certificate")
+    else:
+        success("TLS certificate (exists)")
+
+    # Write dynamic TLS config
+    tls_config = (
+        "tls:\n"
+        "  stores:\n"
+        "    default:\n"
+        "      defaultCertificate:\n"
+        "        certFile: /certs/cert.pem\n"
+        "        keyFile: /certs/key.pem\n"
+    )
+    with open(tls_file, "w") as f:
+        f.write(tls_config)
+    success("TLS config")
+
+
+def start_service(service, config):
+    """Start a service container."""
+    name = service["name"]
+    container_name = f"dugout_{name}"
+    network = config["network"]
+    domain = config["domain"]
+    port = config["port"]
+
+    # Resolve host path for dugout home
+    host_home = os.environ.get("DUGOUT_HOST_HOME", "")
+    dugout_home = f"{host_home}/.dugout" if host_home else DUGOUT_HOME
+
+    # Check if already running
+    code, output = run_quiet([
+        "docker", "ps", "--filter", f"name={container_name}",
+        "--filter", "status=running", "-q",
+    ])
+    if output:
+        success(f"{name} (already running)")
+        return
+
+    # Remove stopped container if exists
+    code, output = run_quiet([
+        "docker", "ps", "-a", "--filter", f"name={container_name}", "-q",
+    ])
+    if output:
+        run_quiet(["docker", "rm", "-f", container_name])
+
+    # Build docker run command
+    cmd = [
+        "docker", "run", "-d",
+        "--name", container_name,
+        "--restart", "unless-stopped",
+        "--network", network,
+    ]
+
+    # Ports (only traefik)
+    for p in service.get("ports", []):
+        cmd.extend(["-p", p.format(port=port)])
+
+    # Volumes
+    for v in service.get("volumes", []):
+        cmd.extend(["-v", v.format(dugout_home=dugout_home)])
+
+    # Labels
+    for key, value in service.get("labels", {}).items():
+        label_value = value.format(network=network, domain=domain, port=port)
+        cmd.extend(["--label", f"{key}={label_value}"])
+
+    # Image
+    cmd.append(service["image"])
+
+    # Command args
+    for c in service.get("command", []):
+        cmd.append(c.format(network=network, domain=domain, port=port))
+
+    result = run(cmd)
+    if result.returncode == 0:
+        success(name)
+    else:
+        fail(name)
+
+
+def stop_service(name):
+    """Stop and remove a service container."""
+    container_name = f"dugout_{name}"
+    code, output = run_quiet(["docker", "ps", "-a", "--filter", f"name={container_name}", "-q"])
+    if output:
+        run_quiet(["docker", "stop", container_name])
+        run_quiet(["docker", "rm", container_name])
+        success(name)
+    else:
+        msg(f"{name} (not running)")
+
+
+def install_services(name=None, all_services=False):
+    """Install and start services."""
+    config = get_service_config()
+    network = config["network"]
+    port = config["port"]
+
+    # Check port availability (only if traefik not already running)
+    if not check_traefik_running():
+        if not check_port_available(port):
+            fail(f"Port {port} is already in use.")
+            msg("Choose a different port or stop the process using it.")
+            sys.exit(1)
+
+    # Generate certs and TLS config
+    ensure_certs(config)
+
+    # Create network
+    ensure_network(network)
+
+    if name:
+        # Install specific service by name
+        service = next((s for s in get_services() if s["name"] == name), None)
+        if not service:
+            fail(f"Unknown service: {name}")
+            msg("Available: " + ", ".join(s["name"] for s in get_services()))
+            sys.exit(1)
+
+        # Traefik must be running for other services
+        if name != "traefik" and not check_traefik_running():
+            msg("Starting Traefik first (required)...")
+            traefik = next(s for s in get_services() if s["name"] == "traefik")
+            start_service(traefik, config)
+
+        start_service(service, config)
+    elif all_services:
+        # Install everything without prompting
+        for service in get_services():
+            start_service(service, config)
+    else:
+        # Prompt for each service
+        # Traefik is mandatory
+        traefik = next(s for s in get_services() if s["name"] == "traefik")
+        msg("Traefik (required)")
+        start_service(traefik, config)
+
+        print()
+        msg("Select additional services:\n")
+        for service in get_services():
+            if service.get("mandatory"):
+                continue
+            if prompt_yn(f"Install {service['name']}?", default=True):
+                start_service(service, config)
+
+
+def uninstall_services(name=None):
+    """Stop and remove services."""
+    if name:
+        if name == "traefik":
+            msg("Stopping Traefik will make all services inaccessible.")
+            confirm("Continue?")
+            # Stop everything
+            for service in reversed(get_services()):
+                stop_service(service["name"])
+        else:
+            stop_service(name)
+    else:
+        header("Stopping all services:")
+        for service in reversed(get_services()):
+            stop_service(service["name"])
+        done()
+
+
 # ── Commands ─────────────────────────────────────────────────
 
 def cmd_install(args):
+    all_services = "--all-services" in args
+    args = [a for a in args if a != "--all-services"]
+
     category = args[0] if args else "shims"
     name = args[1] if len(args) > 1 else None
 
@@ -149,9 +425,13 @@ def cmd_install(args):
         header("Installing tools:")
         install_tools(name)
         done()
+    elif category == "services":
+        header("Installing services:")
+        install_services(name=name, all_services=all_services)
+        done()
     else:
         fail(f"Unknown category: {category}")
-        msg("Available: shims, tools")
+        msg("Available: shims, tools, services")
         sys.exit(1)
 
 
@@ -189,6 +469,22 @@ def cmd_status(_args):
             print(f"    ✓ {tool}")
         else:
             print(f"    ✗ {tool}")
+
+    # Running services
+    print("\n  Services:")
+    config = load_config()
+    domain = config.get("domain", "")
+    for service in get_services():
+        container_name = f"dugout_{service['name']}"
+        code, output = run_quiet([
+            "docker", "ps", "--filter", f"name={container_name}",
+            "--filter", "status=running", "-q",
+        ])
+        if output:
+            url = f"http://{service['name']}.{domain}" if domain else ""
+            print(f"    ✓ {service['name']:<12} {url}")
+        else:
+            print(f"    ✗ {service['name']}")
     print()
 
 
@@ -199,16 +495,22 @@ def cmd_uninstall(args):
     if category is None:
         # Uninstall everything
         print(f"\n  This will remove all dugout shims, tools, and the CLI from:")
-        print(f"    {INSTALL_DIR}\n")
+        print(f"    {INSTALL_DIR}")
+        print(f"\n  And stop all running services.\n")
         confirm("Continue?")
+
+        # Stop services
+        for service in reversed(get_services()):
+            stop_service(service["name"])
+
+        # Remove files
         if os.path.isdir(INSTALL_DIR):
             for f in os.listdir(INSTALL_DIR):
                 path = os.path.join(INSTALL_DIR, f)
                 if os.path.isfile(path):
                     os.remove(path)
                     success(f)
-        else:
-            msg("(nothing to remove)")
+
         print("\n  Optionally remove cached images:")
         print('    docker images "ghcr.io/moztopia/dugout-*" -q | xargs docker rmi\n')
     elif category == "shims":
@@ -237,9 +539,12 @@ def cmd_uninstall(args):
             header("Removing all tools:")
             uninstall_items(TOOLS, "tools")
             done()
+    elif category == "services":
+        header("Stopping services:")
+        uninstall_services(name)
     else:
         fail(f"Unknown category: {category}")
-        msg("Available: shims, tools")
+        msg("Available: shims, tools, services")
         sys.exit(1)
 
 

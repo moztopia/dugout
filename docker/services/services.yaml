@@ -1,0 +1,86 @@
+# Dugout service definitions
+# Each service runs as a persistent container behind Traefik.
+# Variables: {network}, {domain}, {port}, {dugout_home}
+
+services:
+
+  - name: traefik
+    image: traefik:v3.7.1
+    mandatory: true
+    ports:
+      - "{port}:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - "{dugout_home}/certs:/certs:ro"
+      - "{dugout_home}/dynamic/tls.yaml:/etc/traefik/dynamic/tls.yaml:ro"
+    command:
+      - --api.dashboard=true
+      - --entrypoints.web.address=:80
+      - --entrypoints.websecure.address=:443
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --providers.docker.network={network}
+      - --providers.file.filename=/etc/traefik/dynamic/tls.yaml
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.traefik-dashboard.rule: "Host(`traefik.{domain}`)"
+      traefik.http.routers.traefik-dashboard.service: api@internal
+      traefik.http.routers.traefik-dashboard.entrypoints: web
+      traefik.http.routers.traefik-dashboard-secure.rule: "Host(`traefik.{domain}`)"
+      traefik.http.routers.traefik-dashboard-secure.service: api@internal
+      traefik.http.routers.traefik-dashboard-secure.entrypoints: websecure
+      traefik.http.routers.traefik-dashboard-secure.tls: "true"
+
+  - name: portainer
+    image: portainer/portainer-ce:latest
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - dugout_portainer_data:/data
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.portainer.rule: "Host(`portainer.{domain}`)"
+      traefik.http.routers.portainer.entrypoints: web
+      traefik.http.services.portainer.loadbalancer.server.port: "9000"
+      traefik.http.routers.portainer-secure.rule: "Host(`portainer.{domain}`)"
+      traefik.http.routers.portainer-secure.entrypoints: websecure
+      traefik.http.routers.portainer-secure.tls: "true"
+      traefik.http.routers.portainer-secure.service: portainer
+
+  - name: dozzle
+    image: amir20/dozzle:latest
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.dozzle.rule: "Host(`dozzle.{domain}`)"
+      traefik.http.routers.dozzle.entrypoints: web
+      traefik.http.services.dozzle.loadbalancer.server.port: "8080"
+      traefik.http.routers.dozzle-secure.rule: "Host(`dozzle.{domain}`)"
+      traefik.http.routers.dozzle-secure.entrypoints: websecure
+      traefik.http.routers.dozzle-secure.tls: "true"
+      traefik.http.routers.dozzle-secure.service: dozzle
+
+  - name: adminer
+    image: adminer:latest
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.adminer.rule: "Host(`adminer.{domain}`)"
+      traefik.http.routers.adminer.entrypoints: web
+      traefik.http.services.adminer.loadbalancer.server.port: "8080"
+      traefik.http.routers.adminer-secure.rule: "Host(`adminer.{domain}`)"
+      traefik.http.routers.adminer-secure.entrypoints: websecure
+      traefik.http.routers.adminer-secure.tls: "true"
+      traefik.http.routers.adminer-secure.service: adminer
+
+  - name: mailpit
+    image: axllent/mailpit:latest
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.mailpit.rule: "Host(`mailpit.{domain}`)"
+      traefik.http.routers.mailpit.entrypoints: web
+      traefik.http.services.mailpit.loadbalancer.server.port: "8025"
+      traefik.http.routers.mailpit-secure.rule: "Host(`mailpit.{domain}`)"
+      traefik.http.routers.mailpit-secure.entrypoints: websecure
+      traefik.http.routers.mailpit-secure.tls: "true"
+      traefik.http.routers.mailpit-secure.service: mailpit

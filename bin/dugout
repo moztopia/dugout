@@ -3,12 +3,15 @@ set -eu
 TTY_FLAG=""
 [ -t 0 ] && [ -t 1 ] && TTY_FLAG="-t"
 HOSTBIN="${HOME}/.local/bin/dugout"
-mkdir -p "$HOSTBIN"
+DUGOUT_HOME="${HOME}/.dugout"
+mkdir -p "$HOSTBIN" "$DUGOUT_HOME"
 exec docker run --rm --init -i $TTY_FLAG \
   -v "$(pwd):/workspace" \
   -v "${HOSTBIN}:/hostbin" \
+  -v "${DUGOUT_HOME}:/dugout-home" \
   -v /var/run/docker.sock:/var/run/docker.sock \
   -e "DUGOUT_HOSTBIN=/hostbin" \
+  -e "DUGOUT_HOME=/dugout-home" \
   -e "DUGOUT_HOST_PATH=${PATH}" \
   -e "DUGOUT_HOST_HOME=${HOME}" \
   -w /workspace \

@@ -24,4 +24,4 @@ case ":${PATH}:" in
 esac
 
 printf '\n  Done. Now run:\n'
-printf '    dugout install shims\n\n'
+printf '    dugout install OR dugout help\n\n'

@@ -16,7 +16,7 @@ Nothing is installed on your machine except a few tiny shell scripts.
 ## Install
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/moztopia/dugout/main/.docker/install.sh | sh
+curl -fsSL https://github.com/moztopia/dugout/raw/main/.docker/install.sh | sh
 ```
 
 Make sure `~/.local/bin/dugout` is in your `PATH`. Add this to your shell

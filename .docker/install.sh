@@ -3,7 +3,7 @@
 # Usage: curl -fsSL https://raw.githubusercontent.com/moztopia/dugout/main/.docker/install.sh | sh
 set -eu
 
-REPO="https://raw.githubusercontent.com/moztopia/dugout/main"
+REPO="https://github.com/moztopia/dugout/raw/main"
 INSTALL_DIR="${HOME}/.local/bin/dugout"
 SHIMS="node npm npx php composer mysql mariadb"
 
@@ -27,4 +27,4 @@ case ":${PATH}:" in
 esac
 
 printf '\n  Done. Open a new terminal and try:\n'
-printf '    node --version | npm --version | php --version | composer --version\n\n'
+printf '    node --version | php --version | mysql --version | mariadb --version\n\n'

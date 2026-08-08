@@ -33,6 +33,8 @@ node --version
 npm --version
 php --version
 composer --version
+mysql --version
+mariadb --version
 ```
 
 ## Uninstall
@@ -48,6 +50,8 @@ Optionally remove the cached Docker images:
 ```sh
 docker rmi ghcr.io/moztopia/dugout-node:22 ghcr.io/moztopia/dugout-node:24 ghcr.io/moztopia/dugout-node:26
 docker rmi ghcr.io/moztopia/dugout-php:8.2 ghcr.io/moztopia/dugout-php:8.3 ghcr.io/moztopia/dugout-php:8.4 ghcr.io/moztopia/dugout-php:8.5
+docker rmi ghcr.io/moztopia/dugout-mysql:8.4
+docker rmi ghcr.io/moztopia/dugout-mariadb:10.11 ghcr.io/moztopia/dugout-mariadb:11.4
 ```
 
 That's everything. No config files, no daemons, no leftover state.
@@ -63,8 +67,11 @@ That's everything. No config files, no daemons, no leftover state.
 | npx | `npx` | `ghcr.io/moztopia/dugout-node` |
 | PHP | `php` | `ghcr.io/moztopia/dugout-php` |
 | Composer | `composer` | `ghcr.io/moztopia/dugout-php` |
+| MySQL | `mysql` | `ghcr.io/moztopia/dugout-mysql` |
+| MariaDB | `mariadb` | `ghcr.io/moztopia/dugout-mariadb` |
 
 Node, npm, and npx share one image. PHP and Composer share another.
+MySQL and MariaDB each have their own.
 
 ## Switching Versions
 
@@ -73,6 +80,7 @@ Set an environment variable to change which version runs:
 ```sh
 export DUGOUT_NODE_VERSION=22
 export DUGOUT_PHP_VERSION=8.3
+export DUGOUT_MARIADB_VERSION=10.11
 ```
 
 ### Node
@@ -92,13 +100,24 @@ export DUGOUT_PHP_VERSION=8.3
 | **8.4** | **Default** |
 | 8.5 | Supported |
 
-The version can be set globally in your shell config, per-session, or
-per-command:
+### MySQL
+
+| Version | Status |
+| --- | --- |
+| **8.4** | **Default** (LTS until 2032) |
+
+### MariaDB
+
+| Version | Status |
+| --- | --- |
+| 10.11 | Supported (LTS until 2028) |
+| **11.4** | **Default** (LTS) |
+
+Versions can be set globally in your shell config, per-session, or per-command:
 
 ```sh
 # Global default (add to ~/.bashrc or ~/.bash_pathing)
-export DUGOUT_NODE_VERSION=26
-export DUGOUT_PHP_VERSION=8.5
+export DUGOUT_MARIADB_VERSION=10.11
 
 # One-off command
 DUGOUT_PHP_VERSION=8.2 php --version
@@ -130,18 +149,22 @@ by you. The container is removed immediately after the command finishes.
 
 ```
 .docker/
-  images/node.Dockerfile    Image recipe for Node 22/24/26
-  images/php.Dockerfile     Image recipe for PHP 8.2/8.3/8.4/8.5
-  installer.Dockerfile      Installer image
-  install.sh                Curl installer
+  images/node.Dockerfile      Image recipe for Node 22/24/26
+  images/php.Dockerfile       Image recipe for PHP 8.2/8.3/8.4/8.5
+  images/mysql.Dockerfile     Image recipe for MySQL 8.4
+  images/mariadb.Dockerfile   Image recipe for MariaDB 10.11/11.4
+  installer.Dockerfile        Installer image
+  install.sh                  Curl installer
 bin/
-  node                      Shim — runs node in a container
-  npm                       Shim — runs npm in a container
-  npx                       Shim — runs npx in a container
-  php                       Shim — runs php in a container
-  composer                  Shim — runs composer in a container
+  node                        Shim — runs node in a container
+  npm                         Shim — runs npm in a container
+  npx                         Shim — runs npx in a container
+  php                         Shim — runs php in a container
+  composer                    Shim — runs composer in a container
+  mysql                       Shim — runs mysql client in a container
+  mariadb                     Shim — runs mariadb client in a container
 tools/
-  barrel/                   Barrel — file scaffolding tool
+  barrel/                     Barrel — file scaffolding tool
 ```
 
 ## For Maintainers
@@ -158,6 +181,14 @@ done
 for v in 8.2 8.3 8.4 8.5; do
   docker build --build-arg PHP_VERSION=$v -f .docker/images/php.Dockerfile -t ghcr.io/moztopia/dugout-php:$v .
 done
+
+# MySQL
+docker build --build-arg MYSQL_VERSION=8.4 -f .docker/images/mysql.Dockerfile -t ghcr.io/moztopia/dugout-mysql:8.4 .
+
+# MariaDB
+for v in 10.11 11.4; do
+  docker build --build-arg MARIADB_VERSION=$v -f .docker/images/mariadb.Dockerfile -t ghcr.io/moztopia/dugout-mariadb:$v .
+done
 ```
 
 Push to GHCR:
@@ -166,4 +197,6 @@ Push to GHCR:
 echo $GH_DUGOUT_WRITE_PACKAGES | docker login ghcr.io -u moztopia --password-stdin
 for v in 22 24 26; do docker push ghcr.io/moztopia/dugout-node:$v; done
 for v in 8.2 8.3 8.4 8.5; do docker push ghcr.io/moztopia/dugout-php:$v; done
+docker push ghcr.io/moztopia/dugout-mysql:8.4
+for v in 10.11 11.4; do docker push ghcr.io/moztopia/dugout-mariadb:$v; done
 ```

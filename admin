@@ -1,0 +1,145 @@
+#!/bin/sh
+# Dugout admin — build, push, and install containerized dev tools
+set -eu
+
+PREFIX="ghcr.io/moztopia/dugout"
+DUGOUT_ROOT="$(cd "$(dirname "$0")" && pwd)"
+INSTALL_DIR="${HOME}/.local/bin/dugout"
+
+# ── Image definitions ────────────────────────────────────────
+# name|dockerfile|build_arg|versions (space-separated)
+IMAGES="
+node    | .docker/images/node.Dockerfile    | NODE_VERSION    | 22 24 26
+php     | .docker/images/php.Dockerfile     | PHP_VERSION     | 8.2 8.3 8.4 8.5
+mysql   | .docker/images/mysql.Dockerfile   | MYSQL_VERSION   | 8.4
+mariadb | .docker/images/mariadb.Dockerfile | MARIADB_VERSION | 10.11 11.4
+"
+
+# ── Helpers ──────────────────────────────────────────────────
+
+usage() {
+  cat <<'EOF'
+Usage:
+  admin build   [tool]     Build images (all or specific tool)
+  admin push    [tool]     Push images to GHCR (all or specific tool)
+  admin install            Copy shims to ~/.local/bin/dugout
+  admin deploy  [tool]     Build + install + push (all or specific tool)
+  admin images             List all defined images and versions
+EOF
+}
+
+parse_image() {
+  _name="$(echo "$1" | cut -d'|' -f1 | tr -d ' ')"
+  _file="$(echo "$1" | cut -d'|' -f2 | tr -d ' ')"
+  _arg="$(echo "$1" | cut -d'|' -f3 | tr -d ' ')"
+  _versions="$(echo "$1" | cut -d'|' -f4 | sed 's/^ *//')"
+}
+
+each_image() {
+  action="$1"
+  filter="${2:-}"
+
+  echo "$IMAGES" | while IFS= read -r line; do
+    line="$(echo "$line" | sed 's/^[[:space:]]*//')"
+    [ -n "$line" ] || continue
+
+    parse_image "$line"
+
+    if [ -n "$filter" ] && [ "$_name" != "$filter" ]; then
+      continue
+    fi
+
+    for ver in $_versions; do
+      "$action" "$_name" "$_file" "$_arg" "$ver"
+    done
+  done
+
+  if [ -n "$filter" ]; then
+    found=""
+    echo "$IMAGES" | while IFS= read -r line; do
+      line="$(echo "$line" | sed 's/^[[:space:]]*//')"
+      [ -n "$line" ] || continue
+      parse_image "$line"
+      [ "$_name" = "$filter" ] && echo "found"
+    done | grep -q "found" || {
+      printf 'Unknown tool: %s\n' "$filter" >&2
+      exit 1
+    }
+  fi
+}
+
+# ── Actions ──────────────────────────────────────────────────
+
+do_build() {
+  name="$1" file="$2" arg="$3" ver="$4"
+  tag="${PREFIX}-${name}:${ver}"
+  printf '  Building %s\n' "$tag"
+  docker build \
+    --build-arg "${arg}=${ver}" \
+    --file "${DUGOUT_ROOT}/${file}" \
+    --tag "$tag" \
+    "$DUGOUT_ROOT"
+}
+
+do_push() {
+  name="$1" file="$2" arg="$3" ver="$4"
+  tag="${PREFIX}-${name}:${ver}"
+  printf '  Pushing %s\n' "$tag"
+  docker push "$tag"
+}
+
+do_install() {
+  mkdir -p "$INSTALL_DIR"
+  cp "${DUGOUT_ROOT}"/bin/* "$INSTALL_DIR/"
+  chmod +x "$INSTALL_DIR"/*
+  printf '  Shims installed to %s\n' "$INSTALL_DIR"
+}
+
+do_list() {
+  name="$1" file="$2" arg="$3" ver="$4"
+  printf '  %-12s %s\n' "$name" "${PREFIX}-${name}:${ver}"
+}
+
+# ── Main ─────────────────────────────────────────────────────
+
+[ "$#" -gt 0 ] || { usage; exit 1; }
+
+command="$1"
+shift
+tool="${1:-}"
+
+case "$command" in
+  build)
+    printf '\nBuilding images:\n'
+    each_image do_build "$tool"
+    printf '\nDone.\n\n'
+    ;;
+  push)
+    printf '\nPushing images:\n'
+    each_image do_push "$tool"
+    printf '\nDone.\n\n'
+    ;;
+  install)
+    printf '\nInstalling shims:\n'
+    do_install
+    printf '\nDone.\n\n'
+    ;;
+  deploy)
+    printf '\nBuilding images:\n'
+    each_image do_build "$tool"
+    printf '\nInstalling shims:\n'
+    do_install
+    printf '\nPushing images:\n'
+    each_image do_push "$tool"
+    printf '\nDone.\n\n'
+    ;;
+  images)
+    printf '\nDefined images:\n'
+    each_image do_list ""
+    printf '\n'
+    ;;
+  *)
+    usage
+    exit 1
+    ;;
+esac

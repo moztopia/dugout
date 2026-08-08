@@ -5,7 +5,7 @@ set -eu
 
 REPO="https://raw.githubusercontent.com/moztopia/dugout/main"
 INSTALL_DIR="${HOME}/.local/bin/dugout"
-SHIMS="node npm npx php composer"
+SHIMS="node npm npx php composer mysql mariadb"
 
 printf '\n  Dugout — installing containerized dev tools\n\n'
 

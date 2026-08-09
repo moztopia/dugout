@@ -4,7 +4,7 @@ All notable changes to Dugout will be documented in this file.
 
 ---
 
-## [0.10.0] — 2026-08-08
+## [0.9.1] — 2026-08-08
 
 ### Services
 

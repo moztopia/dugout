@@ -25,6 +25,17 @@ SHIMS = [
 
 TOOLS = ["dugout", "barrel"]
 
+# env var, default value, shims that use it
+VERSION_ENVS = [
+    ("DUGOUT_NODE_VERSION",    "24",    ["node", "npm", "npx"]),
+    ("DUGOUT_PHP_VERSION",     "8.4",   ["php", "composer"]),
+    ("DUGOUT_MYSQL_VERSION",   "8.4",   ["mysql"]),
+    ("DUGOUT_MARIADB_VERSION", "11.4",  ["mariadb"]),
+    ("DUGOUT_REDIS_VERSION",   "7.4",   ["redis-cli"]),
+    ("DUGOUT_PSQL_VERSION",    "17",    ["psql"]),
+    ("DUGOUT_GO_VERSION",      "1.26",  ["go"]),
+]
+
 # name, dockerfile, build_arg, versions
 IMAGES = [
     ("node",    "docker/shims/node.Dockerfile",    "NODE_VERSION",     ["22", "24", "26"]),
@@ -558,6 +569,15 @@ def cmd_status(_args):
             print(f"    ✓ {service['name']:<12} {url}")
         else:
             print(f"    ✗ {service['name']}")
+
+    # Environment variables
+    print("\n  Environment:")
+    for var, default, shims in VERSION_ENVS:
+        value = os.environ.get(var, "")
+        if value:
+            print(f"    ✓ {var}={value}  (overriding default {default})")
+        else:
+            print(f"    · {var}  (default: {default})")
     print()
 
 

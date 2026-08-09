@@ -109,13 +109,14 @@ def each_image(action, filter_name=None):
 def do_build(name, dockerfile, build_arg, ver):
     tag = f"{PREFIX}-{name}:{ver}"
     msg(f"Building {tag}")
+    env = {**os.environ, "BUILDX_GIT_INFO": "0"}
     run([
-        "docker", "build",
+        "docker", "buildx", "build", "--load",
         "--build-arg", f"{build_arg}={ver}",
         "--file", f"/workspace/{dockerfile}",
         "--tag", tag,
         "/workspace",
-    ])
+    ], env=env)
 
 
 _ghcr_logged_in = False
@@ -236,7 +237,7 @@ def ensure_network(network):
     code, _ = run_quiet(["docker", "network", "inspect", network])
     if code != 0:
         msg(f"Creating network: {network}")
-        run(["docker", "network", "create", network])
+        run_quiet(["docker", "network", "create", network])
         success(f"Network {network}")
     else:
         success(f"Network {network} (exists)")
@@ -342,11 +343,13 @@ def start_service(service, config):
     for c in service.get("command", []):
         cmd.append(c.format(network=network, domain=domain, port=port))
 
-    result = run(cmd)
+    result = run(cmd, capture_output=True, text=True)
     if result.returncode == 0:
         success(name)
     else:
         fail(name)
+        if result.stderr.strip():
+            msg(result.stderr.strip())
 
 
 def stop_service(name):
@@ -413,6 +416,51 @@ def install_services(name=None, all_services=False):
                 continue
             if prompt_yn(f"Install {service['name']}?", default=True):
                 start_service(service, config)
+
+    # Print summary of running services
+    print_service_summary(config)
+
+
+SERVICE_NOTES = {
+    "traefik":   "No auth — dashboard is open",
+    "portainer": "Set admin password on first visit",
+    "dozzle":    "No auth required",
+    "adminer":   "Enter your database credentials to connect",
+    "mailpit":   "No auth — SMTP on port 1025 inside the Docker network",
+}
+
+
+def print_service_summary(config):
+    """Print a summary of running services with URLs."""
+    domain = config.get("domain", "localhost")
+    port = config.get("port", "80")
+    scheme_http = f"http" if port == "80" else f"http"
+    port_suffix = "" if port == "80" else f":{port}"
+
+    print()
+    print("  ┌─────────────────────────────────────────────────────┐")
+    print("  │  Services                                           │")
+    print("  ├─────────────────────────────────────────────────────┤")
+
+    for service in get_services():
+        container_name = f"dugout_{service['name']}"
+        code, output = run_quiet([
+            "docker", "ps", "--filter", f"name={container_name}",
+            "--filter", "status=running", "-q",
+        ])
+        if output:
+            sname = service["name"]
+            url_http = f"http://{sname}.{domain}{port_suffix}"
+            url_https = f"https://{sname}.{domain}"
+            note = SERVICE_NOTES.get(sname, "")
+            print(f"  │  ✓ {sname:<12} {url_http}")
+            print(f"  │               {url_https}")
+            if note:
+                print(f"  │               {note}")
+            print("  │")
+
+    print("  └─────────────────────────────────────────────────────┘")
+    print()
 
 
 def uninstall_services(name=None):

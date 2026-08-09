@@ -16,6 +16,7 @@ services:
       - "{dugout_home}/dynamic/tls.yaml:/etc/traefik/dynamic/tls.yaml:ro"
     command:
       - --api.dashboard=true
+      - --accesslog=true
       - --entrypoints.web.address=:80
       - --entrypoints.websecure.address=:443
       - --providers.docker=true

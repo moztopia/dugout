@@ -3,7 +3,7 @@ FROM python:3.13-alpine
 LABEL org.opencontainers.image.title="Dugout Tools"
 LABEL org.opencontainers.image.source="https://github.com/moztopia/dugout"
 
-RUN apk add --no-cache curl docker-cli openssl && \
+RUN apk add --no-cache curl docker-cli docker-cli-buildx git openssl && \
     pip install --no-cache-dir pyyaml
 
 COPY tools/ /opt/dugout/tools/
